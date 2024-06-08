@@ -1,10 +1,19 @@
+# -*- coding : utf-8 -*-
+# pylint: disable=invalid_name,too-many-instance-attributes, too-many-arguments
+
+from __future__ import (absolute_import, division, unicode_literals)
+from copy import deepcopy
 import sys
 import serial as s
 import math
+import numpy as np
+from numpy import dot, zeros, eye
+import scipy.linalg as linalg
+from filterpy.stats import logpdf
+from filterpy.common import pretty_str, reshape_z
 
-class EKF:
-    def __init__(self):
-        pass
+class ExtendedKalmanFilter(object):
+    def __init__(self):pass
 
 def FloorChecker(height): # 바닥에 있는가를 체크하는 함수 ( O(1) )
     if height == floor:
@@ -174,3 +183,7 @@ while True:
     OutLinedChecker(magX,magY)
 
     #TODO Kalman Filter
+
+    kalman = ExtendedKalmanFilter
+
+    
