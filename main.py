@@ -11,7 +11,7 @@ from numpy import dot, zeros, eye
 import scipy.linalg as linalg
 from filterpy.stats import logpdf
 from filterpy.common import pretty_str, reshape_z
-
+import ExtendedKalmanFilter
 
 def FloorChecker(height): # 바닥에 있는가를 체크하는 함수 ( O(1) )
     if height == floor:
