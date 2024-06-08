@@ -2,14 +2,18 @@ import sys
 import serial as s
 import math
 
-def FloorChecker(height):
+class EKF:
+    def __init__(self):
+        pass
+
+def FloorChecker(height): # 바닥에 있는가를 체크하는 함수 ( O(1) )
     if height == floor:
         Positioned[0] == True
         return True
     else:
         Positioned[0] == False
         return False
-def HittedChecker(ax1, ay1, az1, ax2, ay2, az2, mz): # 맞았는가를 체크하는 함수
+def HittedChecker(ax1, ay1, az1, ax2, ay2, az2, mz): # 맞았는가를 체크하는 함수 ( O(1) )
     try:
         if FloorChecker(mz):
             return False
@@ -22,7 +26,7 @@ def HittedChecker(ax1, ay1, az1, ax2, ay2, az2, mz): # 맞았는가를 체크하
         return False
     return True
 
-def ThrowerChecker(l,temp): # 던진 사람을 체크할때 사용되는 리스트 추가 함수
+def ThrowerChecker(l,temp): # 던진 사람을 체크할때 사용되는 리스트 추가 함수 ( O(1) )
     try:
         a = math.sqrt((l[0]**2)+(l[1]**2)+(l[2]**2))
         al.append([a,l[3],l[4],l[5]])
@@ -94,7 +98,7 @@ def ThrowerCheckerRecursion(i,p): # 던진 사람을 재귀적으로 체크할�
     except IndexError:
         return ThrowerCheckerRecursion(i,p+1)
 
-def BallPlaceChecker(bx,by):
+def BallPlaceChecker(bx,by): # 공의 위치를 확인하는 함수 ( O(1) )
     if ((bx <= x)and(bx >= PointList[4][0])) and ((by <= PointList[4][1])and(by>=PointList[8][1])):
         Positioned[4] = True
         Positioned[5] = False
@@ -130,7 +134,7 @@ def BallPlaceChecker(bx,by):
     else:
         return None
 
-def OutLinedChecker(x,y):
+def OutLinedChecker(x,y): # 경기장 밖으로 나갔는지 체크하는 함수 ( O(1) )
     if BallPlaceChecker(x,y) == None:
         Positioned[3] == True
         return True
@@ -169,4 +173,4 @@ while True:
     ThrowerChecker(accelX,accelY,accelZ,0)
     OutLinedChecker(magX,magY)
 
-    #TODO 
+    #TODO Kalman Filter
