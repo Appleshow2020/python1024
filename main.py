@@ -8,16 +8,17 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.linalg import inv
+import ExtendedKalmanFilter
 
 
-def FloorChecker(height): # 바닥에 있는가를 체크하는 함수 ( O(1) )
+def FloorChecker(height): 
     if height == floor:
         Positioned[0] == True
         return True
     else:
         Positioned[0] == False
         return False
-def HittedChecker(ax1, ay1, az1, ax2, ay2, az2, mz): # 맞았는가를 체크하는 함수 ( O(1) )
+def HittedChecker(ax1, ay1, az1, ax2, ay2, az2, mz): 
     try:
         if FloorChecker(mz):
             return False
@@ -30,7 +31,7 @@ def HittedChecker(ax1, ay1, az1, ax2, ay2, az2, mz): # 맞았는가를 체크하
         return False
     return True
 
-def ThrowerChecker(l,temp): # 던진 사람을 체크할때 사용되는 리스트 추가 함수 ( O(1) )
+def ThrowerChecker(l,temp): 
     try:
         a = math.sqrt((l[0]**2)+(l[1]**2)+(l[2]**2))
         al.append([a,l[3],l[4],l[5]])
@@ -38,10 +39,10 @@ def ThrowerChecker(l,temp): # 던진 사람을 체크할때 사용되는 리스�
     except ValueError:
         return None
 
-def ThrowerCheckerRecursion(i,p): # 던진 사람을 재귀적으로 체크할때 사용되는 메인 함수 ( O(n) )
+def ThrowerCheckerRecursion(i,p): 
     try:
         if p==0:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(10, 1, -1)): # == if al[i-10][0]<al[i-9][0]<al[i-8][0]<al[i-7][0]<al[i-6][0]<al[i-5][0]<al[i-4][0]<al[i-3][0]<al[i-2][0]<al[i-1][0]:
+            if all(al[i-j][0] < al[i-j+1][0] for j in range(10, 1, -1)): 
                 return ThrowerCheckerRecursion(i-9,p)
             else:
                 return ThrowerCheckerRecursion(i,p+1)
@@ -102,7 +103,7 @@ def ThrowerCheckerRecursion(i,p): # 던진 사람을 재귀적으로 체크할�
     except IndexError:
         return ThrowerCheckerRecursion(i,p+1)
 
-def BallPlaceChecker(bx,by): # 공의 위치를 확인하는 함수 ( O(1) )
+def BallPlaceChecker(bx,by): 
     if ((bx <= x)and(bx >= PointList[4][0])) and ((by <= PointList[4][1])and(by>=PointList[8][1])):
         Positioned[4] = True
         Positioned[5] = False
@@ -138,7 +139,7 @@ def BallPlaceChecker(bx,by): # 공의 위치를 확인하는 함수 ( O(1) )
     else:
         return None
 
-def OutLinedChecker(x,y): # 경기장 밖으로 나갔는지 체크하는 함수 ( O(1) )
+def OutLinedChecker(x,y): 
     if BallPlaceChecker(x,y) == None:
         Positioned[3] == True
         return True
