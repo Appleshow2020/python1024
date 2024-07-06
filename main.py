@@ -18,6 +18,7 @@ import kagglehub
 class Multipose:
     def __init__(self):
         os.environ['TF_ENABLE_ONEDNN_OPTS'] = 0
+
     
     def get_args(self):
         self.parser = argparse.ArgumentParser()
@@ -156,6 +157,7 @@ class Multipose:
 
 
     def draw_debug(self, image, elapsed_time, keypoint_score_th, keypoints_list, scores_list, bbox_score_th, bbox_list):  
+
         self.debug_image = copy.deepcopy(image)
 
         for keypoints, scores in zip(keypoints_list, scores_list):
@@ -163,146 +165,146 @@ class Multipose:
             index01, index02 = 0, 1
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 0, 2
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 1, 3
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 2, 4
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 0, 5
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 0, 6
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 5, 6
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 5, 7
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 7, 9
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 6, 8
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 8, 10
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 11, 12
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 5, 11
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 11, 13
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 13, 15
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 6, 12
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 12, 14
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
             index01, index02 = 14, 16
             if scores[index01] > keypoint_score_th and scores[
                     index02] > keypoint_score_th:
-                point01 = keypoints[index01]
-                point02 = keypoints[index02]
-                cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+                self.point01 = keypoints[index01]
+                self.point02 = keypoints[index02]
+                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
+                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
 
 
             for keypoint, score in zip(keypoints, scores):
@@ -456,4 +458,5 @@ while True:
     ThrowerChecker(accelX,accelY,accelZ,0)
     OutLinedChecker(magX,magY)
 
-    Pose = Multipose
+    Pose = Multipose()
+    
