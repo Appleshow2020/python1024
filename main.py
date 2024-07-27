@@ -3,7 +3,7 @@
 
 from __future__ import (absolute_import, division, unicode_literals)
 import sys, os
-import serial as s
+import serial
 import math
 import copy
 import time
@@ -15,6 +15,7 @@ import tensorflow_hub as tfhub
 import kagglehub
 import ctypes
 import sympy
+import struct
 
 cv.destroyAllWindows()
 
@@ -154,11 +155,11 @@ class Multipose:
         return self.debug_image
     
     
-def KeypointBound(keypoint: int):
+def KeypointBound(keypoint: int) -> bool:
     x, y = keypoint
     return x<0
 
-def FloorChecker(height: float):
+def FloorChecker(height: float) -> bool:
     if height == floor:
         Positioned[0] = True
         return True
@@ -167,7 +168,7 @@ def FloorChecker(height: float):
         return False
 def HittedChecker(ax1: float, ay1: float, az1: float,
                   ax2: float, ay2: float, az2: float,
-                  mz: float): 
+                  mz: float) -> bool: 
     try:
         if FloorChecker(mz):
             return False
@@ -180,69 +181,68 @@ def HittedChecker(ax1: float, ay1: float, az1: float,
         return False
     return True
 
-def ThrowerChecker(l: list, temp: int): 
+def ThrowerChecker(l: list, temp: int) -> any: 
     try:
         a = math.sqrt((l[0]**2)+(l[1]**2)+(l[2]**2))
         al.append([a,l[3],l[4],l[5]])
         return ThrowerCheckerRecursion(temp,0)
     except ValueError:
         return None
-
-def ThrowerCheckerRecursion(i: int, p: int): 
+    
+def ThrowerCheckerRecursion(i: int, p: int) -> any:
     try:
-        if p==0:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(10, 1, -1)): 
-                return ThrowerCheckerRecursion(i-9,p)
+        if p == 0:
+            if al[i-10][0] < al[i-9][0] < al[i-8][0] < al[i-7][0] < al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-9, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==1:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(9, 1, -1)):
-                return ThrowerCheckerRecursion(i-8,p)
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 1:
+            if al[i-9][0] < al[i-8][0] < al[i-7][0] < al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-8, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==2:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(8, 1, -1)):
-                return ThrowerCheckerRecursion(i-7,p)
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 2:
+            if al[i-8][0] < al[i-7][0] < al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-7, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==3:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(7, 1, -1)):
-                return ThrowerCheckerRecursion(i-6,p)
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 3:
+            if al[i-7][0] < al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-6, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==4:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(6, 1, -1)):
-                return ThrowerCheckerRecursion(i-5,p)
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 4:
+            if al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-5, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==5:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(5, 1, -1)):
-                return ThrowerCheckerRecursion(i-4,p)
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 5:
+            if al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-4, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==6:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(4, 1, -1)):
-                return ThrowerCheckerRecursion(i-3,p)
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 6:
+            if al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-3, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==7:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(3, 1, -1)):
-                return ThrowerCheckerRecursion(i-2,p)
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 7:
+            if al[i-3][0] < al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-2, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==8:
-            if all(al[i-j][0] < al[i-j+1][0] for j in range(2, 1, -1)):
-                return ThrowerCheckerRecursion(i-1,p)
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 8:
+            if al[i-2][0] < al[i-1][0]:
+                return ThrowerCheckerRecursion(i-1, p)
             else:
-                return ThrowerCheckerRecursion(i,p+1)
-        elif p==9:
-
+                return ThrowerCheckerRecursion(i, p+1)
+        elif p == 9:
             bx = al[i][1]
             by = al[i][2]
 
-            if (BallPlaceChecker(bx,by) == "li") or (BallPlaceChecker(bx,by) == "lo"):
+            if (BallPlaceChecker(bx, by) == "li") or (BallPlaceChecker(bx, by) == "lo"):
                 return True
-            elif (BallPlaceChecker(bx,by) == "ri") or (BallPlaceChecker(bx,by) == "ro"):
+            elif (BallPlaceChecker(bx, by) == "ri") or (BallPlaceChecker(bx, by) == "ro"):
                 return False
             else:
                 return None
@@ -250,9 +250,10 @@ def ThrowerCheckerRecursion(i: int, p: int):
             raise Exception('ValueError Occured on Function : ThrowerCheckerRecursion\nCause : p>9')
 
     except IndexError:
-        return ThrowerCheckerRecursion(i,p+1)
+        return ThrowerCheckerRecursion(i, p+1)
 
-def BallPlaceChecker(bx: float, by: float): 
+
+def BallPlaceChecker(bx: float, by: float) -> str: 
     if ((bx <= x)and(bx >= PointList[4][0])) and ((by <= PointList[4][1])and(by>=PointList[8][1])):
         Positioned[4] = True
         Positioned[5] = False
@@ -288,73 +289,71 @@ def BallPlaceChecker(bx: float, by: float):
     else:
         return None
 
-def OutLinedChecker(x: float, y: float): 
+def OutLinedChecker(x: float, y: float) -> bool: 
     if BallPlaceChecker(x,y) == None:
         Positioned[3] = True
         return True
     Positioned[3] = False
     return False
 
-def RootCheckerRecursion(li: list, i: int, p: int): 
+def RootCheckerRecursion(li: list, i: int, p: int) -> any:
     try:
-        if p==0:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(10, 1, -1)): 
-                return RootCheckerRecursion(i-9,p)
+        if p == 0:
+            if li[i-10][0] < li[i-9][0] < li[i-8][0] < li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-9, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==1:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(9, 1, -1)):
-                return RootCheckerRecursion(i-8,p)
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 1:
+            if li[i-9][0] < li[i-8][0] < li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-8, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==2:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(8, 1, -1)):
-                return RootCheckerRecursion(i-7,p)
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 2:
+            if li[i-8][0] < li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-7, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==3:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(7, 1, -1)):
-                return RootCheckerRecursion(i-6,p)
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 3:
+            if li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-6, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==4:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(6, 1, -1)):
-                return RootCheckerRecursion(i-5,p)
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 4:
+            if li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-5, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==5:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(5, 1, -1)):
-                return RootCheckerRecursion(i-4,p)
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 5:
+            if li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-4, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==6:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(4, 1, -1)):
-                return RootCheckerRecursion(i-3,p)
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 6:
+            if li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-3, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==7:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(3, 1, -1)):
-                return RootCheckerRecursion(i-2,p)
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 7:
+            if li[i-3][0] < li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-2, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==8:
-            if all(li[i-j][0] < li[i-j+1][0] for j in range(2, 1, -1)):
-                return RootCheckerRecursion(i-1,p)
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 8:
+            if li[i-2][0] < li[i-1][0]:
+                return RootCheckerRecursion(li, i-1, p)
             else:
-                return RootCheckerRecursion(i,p+1)
-        elif p==9:
+                return RootCheckerRecursion(li, i, p+1)
+        elif p == 9:
             return li[i]
         else:
             raise Exception()
-
+        
     except IndexError:
-        return RootCheckerRecursion(i,p+1)
+        return RootCheckerRecursion(li,i,p+1)
 
-
-input = sys.stdin.readline
-
+print('a')
 Port=int(input())
-ser = s.Serial("COM{}".format(Port),baudrate=115200)
+ser = serial.Serial("COM{}".format(Port), 115200)
 a = float(input())
 x, y, floor = map(float, input().split())
 
@@ -366,52 +365,56 @@ PointList = []
 while (len(PointList)!=len(dx)):
     PointList.append([(a/180)*dx[i] if a!=0 else dx[i], (a/180)*dy[i//4] if a!=0 else dy[i//4]])
     i+=1
-    print(*PointList)
-ser.write(f'Connected as Port: {ser.portstr}, baudrate:{ser.baudrate}', encoding='ascii\n')
+print(*PointList)
+##
 Positioned = ["On Floor", "Hitted", "Thrower", "OutLined", "L In", "R In", "L Out", "R Out"]
 Positioned = [False]*len(Positioned)
 responseList = []
 al = []
 vl = [[0.0,0.0,0.0]]
 sl = [[x, y, floor]]
-integral = sympy.Integral()
-t = 0
-while True:
-    st = time.time()
-    response = ser.readline().decode()
-    responseList.append(list(response.split(',')))
-    accelX, accelY, accelZ, gyroX, gyroY, gyroZ = response.split(',')
-    t = sympy.Symbol('t')
-    v0 = RootCheckerRecursion(vl, 0, 0)
-    s0 = RootCheckerRecursion(sl, 0, 0)
-    vx = integral(accelX, t)+v0[0]
-    vy = integral(accelY, t)+v0[1]
-    vz = integral(accelZ, t)+v0[2]
-    vl.append([vx,vy,vz])
+ntime = 0
+try:
+    while True:
+        st = time.time()
+        response = ser.read(36)
+        unpacked = struct.unpack('<9f', response)
+        responseList.append(unpacked)
+        accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = unpacked[0],unpacked[1],unpacked[2],unpacked[3],unpacked[4],unpacked[5],unpacked[6],unpacked[7],unpacked[8]
+        t = sympy.Symbol('t')
+        v0 = RootCheckerRecursion(vl, 0, 0)
+        s0 = RootCheckerRecursion(sl, 0, 0)
+        vx = sympy.Integral(accelX, t)+v0[0]
+        vy = sympy.Integral(accelY, t)+v0[1]
+        vz = sympy.Integral(accelZ, t)+v0[2]
+        vl.append([vx,vy,vz])
 
-    sx = integral(vx, t)+s0[0]
-    sy = integral(vy, t)+s0[1]
-    sz = integral(vz, t)+s0[2]
-    sl.append([sx,sy,sz])
+        sx = sympy.Integral(vx, t)+s0[0]
+        sy = sympy.Integral(vy, t)+s0[1]
+        sz = sympy.Integral(vz, t)+s0[2]
+        sl.append([sx,sy,sz])
 
-    magX,magY,magZ=sx,sy,sz
-    try:
-        if OutLinedChecker(magX,magY):
-            ser.write('ball outlined\n')
-        if FloorChecker(magZ) and HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
-            continue
-        if HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
-            state = ThrowerChecker([accelX,accelY,accelZ],0)
-            if state == True:
-                ser.write('r player hitted by l player\n')
-            elif state == False:
-                ser.write('l player hitted by r player\n')
-            else:
-                raise Exception()
+        magX,magY,magZ=sx,sy,sz
+        print(responseList)
+        try:
+            if OutLinedChecker(magX,magY):
+                ser.write('ball outlined\n')
+            if FloorChecker(magZ) and HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
+                continue
+            if HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
+                state = ThrowerChecker([accelX,accelY,accelZ],0)
+                if state == True:
+                    ser.write('r player hitted by l player\n')
+                elif state == False:
+                    ser.write('l player hitted by r player\n')
+                else:
+                    raise Exception()
 
-        pose = Multipose()
-        pose.main()
-    except:
-        continue 
-    
-    t+=time.time()-st
+            pose = Multipose()
+            pose.main()
+        except:
+            continue 
+        
+        ntime += time.time()-st
+except KeyboardInterrupt:
+    print("quit system....")
