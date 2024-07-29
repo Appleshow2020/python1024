@@ -4,7 +4,6 @@
 from __future__ import (absolute_import, division, unicode_literals)
 import os
 import serial
-import math
 import copy
 import time
 import argparse
@@ -18,8 +17,41 @@ import struct
 
 cv.destroyAllWindows()
 
-class Position:
+class KalmanFilter:
+    def __init__(self, A, B, H, Q, R, P, x):
+        self.A = A  # State transition matrix
+        self.B = B  # Control input matrix
+        self.H = H  # Observation matrix
+        self.Q = Q  # Process noise covariance
+        self.R = R  # Measurement noise covariance
+        self.P = P  # Estimate error covariance
+        self.x = x  # State estimate
 
+    def predict(self, u=np.zeros(1)):
+        self.x = np.dot(self.A, self.x) + np.dot(self.B, u)
+        self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
+
+    def update(self, z):
+        y = z - np.dot(self.H, self.x)
+        S = np.dot(self.H, np.dot(self.P, self.H.T)) + self.R
+        K = np.dot(np.dot(self.P, self.H.T), np.linalg.inv(S))
+        self.x = self.x + np.dot(K, y)
+        self.P = self.P - np.dot(np.dot(K, self.H), self.P)
+        return self.x
+
+class Position:
+    def __init__(self):
+        self.kf = self.KalmanFilterInitialize()
+    def KalmanFilterInitialize(self):
+        A = np.eye(6)
+        B = np.eye(6)
+        H = np.zeros((3,6))
+        H[:3, :3] = np.eye(3)
+        Q = np.eye(6) * 0.1
+        R = np.eye(3) * 0.1
+        P = np.eye(6)
+        x = np.zeros(6)
+        return KalmanFilter(A, B, H, Q, R, P, x)
     def OrientationUpdate(self, orientation, gyro_data, dt):
         self.omega = np.array([0, gyro_data[0], gyro_data[1], gyro_data[2]])
         self.dq = 0.5 * self.MultiplyQuaternion(orientation, self.omega)
@@ -54,11 +86,13 @@ class Position:
             self.velocity = np.add(self.velocity, np.multiply(self.acc_world, dt), out=self.velocity, casting='unsafe')
             self.position += self.velocity * dt
 
+            z = self.position[:3]
+            updated_state = self.kf.update(z)
+            self.position[:3] = updated_state[:3]
         return self.position
 
 
 class Multipose:
-    
     def __init__(self):
         os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
     
@@ -273,9 +307,9 @@ def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool) -> any:
         if p in sequence_lengths:
             length = sequence_lengths[p]
             if check_sequence(i - length - 1, length):
-                return RootCheckerRecursion(li, i - length, p)
+                return RootCheckerRecursion(li, i - length, p, Flag)
             else:
-                return RootCheckerRecursion(li, i, p + 1)
+                return RootCheckerRecursion(li, i, p + 1, Flag)
         elif p == 9:
             if Flag:
                 bx = al[i][1]
@@ -292,13 +326,18 @@ def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool) -> any:
         else:
             raise Exception()
     except IndexError:
-        RootCheckerRecursion(li, i, p+1)
+        RootCheckerRecursion(li, i, p+1, Flag)
 
 def sqrt(x: float) -> float:
     return x**0.5
 
 def mod(x: float, y: float) -> float:
     return x%y
+
+def S2D(scientific_str: any) -> any:
+    decimal_value = float(scientific_str)
+    return format(decimal_value, 'f')
+
 
 print('a')
 Port=int(input())
@@ -307,17 +346,25 @@ try:
     ser = serial.Serial("COM{}".format(Port), 2000000)
 except Exception as e:
     print(e)
-
 # a = float(input())
 # x, y, floor = map(float, input().split())
 
 default = ser.read(36)
 default_unpacked = struct.unpack('<9f',default)
+default_unpacked = list(default_unpacked)
+default_unpacked[0] /= 16384
+default_unpacked[1] /= 16384
+default_unpacked[2] /= 16384
+default_unpacked[3] /= 131
+default_unpacked[4] /= 131
+default_unpacked[5] /= 131
+default_unpacked = tuple(default_unpacked)
 a = mod(((default_unpacked[3]+default_unpacked[4])/2), 360)
 x, y, floor = default_unpacked[-3], default_unpacked[-2], default_unpacked[-1]
 print(a, x, y, floor,sep='\n')
 
 i = 0
+
 
 dx = [-11,-4,4,11,-8,-4,4,8,-8,-4,4,8,-11,-4,4,11]
 dy = [7, 4, -4, -7]
@@ -337,6 +384,14 @@ while True:
     st = time.time()
     response = ser.read(36)
     unpacked = struct.unpack('<9f', response)
+    unpacked = list(unpacked)
+    unpacked[0] /= 16384
+    unpacked[1] /= 16384
+    unpacked[2] /= 16384
+    unpacked[3] /= 131
+    unpacked[4] /= 131
+    unpacked[5] /= 131
+    unpacked = tuple(unpacked)
     responseList.append(unpacked)
     accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = unpacked[0],unpacked[1],unpacked[2],unpacked[3],unpacked[4],unpacked[5],unpacked[6],unpacked[7],unpacked[8]
     calcPose = Position()
@@ -345,14 +400,17 @@ while True:
     try:
         if OutLinedChecker(magX,magY):
             ser.write('ball outlined\n')
+            print('ball outlined')
         if FloorChecker(magZ) and HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
             continue
         if HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
             state = RootCheckerRecursion([accelX,accelY,accelZ], 0, 0, True)
             if state == True:
                 ser.write('r player hitted by l player\n')
+                print('r player hitted by l player')
             elif state == False:
                 ser.write('l player hitted by r player\n')
+                print('l player hitted by r player')
             else:
                 raise Exception()
         pose = Multipose()
