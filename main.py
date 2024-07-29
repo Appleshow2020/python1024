@@ -2,7 +2,7 @@
 # pylint: disable=invalid_name,too-many-instance-attributes, too-many-arguments
 
 from __future__ import (absolute_import, division, unicode_literals)
-import sys, os
+import os
 import serial
 import math
 import copy
@@ -14,10 +14,46 @@ import tensorflow as tf
 import tensorflow_hub as tfhub
 import kagglehub
 import ctypes
-import sympy
 import struct
 
 cv.destroyAllWindows()
+
+class Position:
+
+    def OrientationUpdate(self, orientation, gyro_data, dt):
+        self.omega = np.array([0, gyro_data[0], gyro_data[1], gyro_data[2]])
+        self.dq = 0.5 * self.MultiplyQuaternion(orientation, self.omega)
+        return orientation + self.dq * dt
+
+    def MultiplyQuaternion(self, q, r):
+        self.w1, self.x1, self.y1, self.z1 = q
+        self.w2, self.x2, self.y2, self.z2 = r
+        return np.array([
+            self.w1 * self.w2 - self.x1 * self.x2 - self.y1 * self.y2 - self.z1 * self.z2,
+            self.w1 * self.x2 + self.x1 * self.w2 + self.y1 * self.z2 - self.z1 * self.y2,
+            self.w1 * self.y2 - self.x1 * self.z2 + self.y1 * self.w2 + self.z1 * self.x2,
+            self.w1 * self.z2 + self.x1 * self.y2 - self.y1 * self.x2 + self.z1 * self.w2
+        ])
+
+    def VectorRotate(self, vector, quaternion):
+        self.q_conjugate = quaternion * np.array([1, -1, -1, -1])
+        self.q_vector = np.concatenate(([0], vector))
+        self.rotated_vector = self.MultiplyQuaternion(self.MultiplyQuaternion(quaternion, self.q_vector), self.q_conjugate)
+        return self.rotated_vector[1:]
+
+
+    def PositionCompute(self, acc_data, gyro_data, initial_position, initial_velocity, dt):
+        self.position = np.array(initial_position)
+        self.velocity = np.array(initial_velocity)
+        self.orientation = np.array([1, 0, 0, 0])
+
+        for acc, gyro in zip(acc_data, gyro_data):
+            self.orientation = self.OrientationUpdate(self.orientation, gyro, dt)
+            self.acc_world = self.VectorRotate(acc, self.orientation)
+            self.velocity += self.acc_world * dt
+            self.position += self.velocity * dt
+
+        return self.position
 
 
 class Multipose:
@@ -25,7 +61,7 @@ class Multipose:
     def __init__(self):
         os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
     
-    def initialize_media_foundation(self):
+    def InitializingMedia(self):
         MFStartup = ctypes.windll.mfplat.MFStartup
         MFShutdown = ctypes.windll.mfplat.MFShutdown
         MF_VERSION = 0x00020070
@@ -35,7 +71,7 @@ class Multipose:
             raise Exception('hr!=0')
         return MFShutdown
     
-    def get_args(self):
+    def Arguments(self):
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("--device", type=int, default=0)
         self.parser.add_argument("--file", type=str, default=None)
@@ -47,7 +83,7 @@ class Multipose:
         self.args = self.parser.parse_args()
         return self.args
  
-    def run_inference(self, model, input_size, image):
+    def Inference(self, model, input_size, image):
         self.image_width, self.image_height = image.shape[1], image.shape[0]
         self.input_image = cv.resize(image, dsize=(input_size, input_size))  
         self.input_image = cv.cvtColor(self.input_image, cv.COLOR_BGR2RGB)  
@@ -79,11 +115,11 @@ class Multipose:
         return self.keypoints_list, self.scores_list, self.bbox_list
 
     def main(self):
-        self.args = self.get_args()
+        self.args = self.Arguments()
         self.cap_device = self.args.device
         self.cap_width = self.args.width
         self.cap_height = self.args.height
-        self.MFShutdown = self.initialize_media_foundation()
+        self.MFShutdown = self.InitializingMedia()
         if self.args.file is not None:
             self.cap_device = self.args.file
         self.mirror = self.args.mirror
@@ -113,9 +149,9 @@ class Multipose:
             if self.mirror:
                 self.frame = cv.flip(self.frame, 1)  
             self.debug_image = copy.deepcopy(self.frame)
-            keypoints_list, scores_list, bbox_list = self.run_inference(self.model, self.input_size, self.frame)
+            keypoints_list, scores_list, bbox_list = self.Inference(self.model, self.input_size, self.frame)
             self.elapsed_time = time.time() - self.start_time
-            self.debug_image = self.draw_debug(
+            self.debug_image = self.DebugDraw(
                 self.debug_image,
                 self.elapsed_time,
                 self.keypoint_score_th,
@@ -132,7 +168,7 @@ class Multipose:
         cv.destroyAllWindows()
         self.MFShutdown()
 
-    def draw_debug(self, image, elapsed_time, keypoint_score_th, keypoints_list, scores_list, bbox_score_th, bbox_list):
+    def DebugDraw(self, image, elapsed_time, keypoint_score_th, keypoints_list, scores_list, bbox_score_th, bbox_list):
         self.debug_image = copy.deepcopy(image)
         for idx1, idx2 in [(0,1),(0,2),(1,3),(2,4),(0,5),(0,6),(5,6),(5,7),(7,9),(6,8),(8,10),(11,12),(5,11),(11,13),(13,15),(6,12),(12,14),(14,16)]:
             if self.scores[idx1] > keypoint_score_th and self.scores[idx2] > keypoint_score_th:
@@ -181,78 +217,6 @@ def HittedChecker(ax1: float, ay1: float, az1: float,
         return False
     return True
 
-def ThrowerChecker(l: list, temp: int) -> any: 
-    try:
-        a = math.sqrt((l[0]**2)+(l[1]**2)+(l[2]**2))
-        al.append([a,l[3],l[4],l[5]])
-        return ThrowerCheckerRecursion(temp,0)
-    except ValueError:
-        return None
-    
-def ThrowerCheckerRecursion(i: int, p: int) -> any:
-    try:
-        if p == 0:
-            if al[i-10][0] < al[i-9][0] < al[i-8][0] < al[i-7][0] < al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-9, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 1:
-            if al[i-9][0] < al[i-8][0] < al[i-7][0] < al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-8, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 2:
-            if al[i-8][0] < al[i-7][0] < al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-7, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 3:
-            if al[i-7][0] < al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-6, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 4:
-            if al[i-6][0] < al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-5, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 5:
-            if al[i-5][0] < al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-4, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 6:
-            if al[i-4][0] < al[i-3][0] < al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-3, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 7:
-            if al[i-3][0] < al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-2, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 8:
-            if al[i-2][0] < al[i-1][0]:
-                return ThrowerCheckerRecursion(i-1, p)
-            else:
-                return ThrowerCheckerRecursion(i, p+1)
-        elif p == 9:
-            bx = al[i][1]
-            by = al[i][2]
-
-            if (BallPlaceChecker(bx, by) == "li") or (BallPlaceChecker(bx, by) == "lo"):
-                return True
-            elif (BallPlaceChecker(bx, by) == "ri") or (BallPlaceChecker(bx, by) == "ro"):
-                return False
-            else:
-                return None
-        else:
-            raise Exception('ValueError Occured on Function : ThrowerCheckerRecursion\nCause : p>9')
-
-    except IndexError:
-        return ThrowerCheckerRecursion(i, p+1)
-
-
 def BallPlaceChecker(bx: float, by: float) -> str: 
     if ((bx <= x)and(bx >= PointList[4][0])) and ((by <= PointList[4][1])and(by>=PointList[8][1])):
         Positioned[4] = True
@@ -296,7 +260,7 @@ def OutLinedChecker(x: float, y: float) -> bool:
     Positioned[3] = False
     return False
 
-def RootCheckerRecursion(li: list, i: int, p: int) -> any:
+def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool) -> any:
     try:
         if p == 0:
             if li[i-10][0] < li[i-9][0] < li[i-8][0] < li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
@@ -344,18 +308,41 @@ def RootCheckerRecursion(li: list, i: int, p: int) -> any:
             else:
                 return RootCheckerRecursion(li, i, p+1)
         elif p == 9:
-            return li[i]
+            if Flag:
+                bx = al[i][1]
+                by = al[i][2]
+
+                if (BallPlaceChecker(bx, by) == "li") or (BallPlaceChecker(bx, by) == "lo"):
+                    return True
+                elif (BallPlaceChecker(bx, by) == "ri") or (BallPlaceChecker(bx, by) == "ro"):
+                    return False
+                else:
+                    return None
+            else:
+                return li[i]
         else:
             raise Exception()
         
     except IndexError:
         return RootCheckerRecursion(li,i,p+1)
 
+def sqrt(x: any) -> any:
+    return x**0.5
+
 print('a')
 Port=int(input())
-ser = serial.Serial("COM{}".format(Port), 115200)
-a = float(input())
-x, y, floor = map(float, input().split())
+
+try:
+    ser = serial.Serial("COM{}".format(Port), 115200)
+except Exception as e:
+    print(e)
+# a = float(input())
+# x, y, floor = map(float, input().split())
+
+default = ser.read(36)
+default_unpacked = struct.unpack('<9f',default)
+a = sqrt((default_unpacked[3]+default_unpacked[4])/2)
+x, y, floor = default_unpacked[-3], default_unpacked[-2], default_unpacked[-1]
 
 i = 0
 
@@ -366,55 +353,38 @@ while (len(PointList)!=len(dx)):
     PointList.append([(a/180)*dx[i] if a!=0 else dx[i], (a/180)*dy[i//4] if a!=0 else dy[i//4]])
     i+=1
 print(*PointList)
-##
+
 Positioned = ["On Floor", "Hitted", "Thrower", "OutLined", "L In", "R In", "L Out", "R Out"]
 Positioned = [False]*len(Positioned)
 responseList = []
-al = []
-vl = [[0.0,0.0,0.0]]
-sl = [[x, y, floor]]
-ntime = 0
-try:
-    while True:
-        st = time.time()
-        response = ser.read(36)
-        unpacked = struct.unpack('<9f', response)
-        responseList.append(unpacked)
-        accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = unpacked[0],unpacked[1],unpacked[2],unpacked[3],unpacked[4],unpacked[5],unpacked[6],unpacked[7],unpacked[8]
-        t = sympy.Symbol('t')
-        v0 = RootCheckerRecursion(vl, 0, 0)
-        s0 = RootCheckerRecursion(sl, 0, 0)
-        vx = sympy.Integral(accelX, t)+v0[0]
-        vy = sympy.Integral(accelY, t)+v0[1]
-        vz = sympy.Integral(accelZ, t)+v0[2]
-        vl.append([vx,vy,vz])
-
-        sx = sympy.Integral(vx, t)+s0[0]
-        sy = sympy.Integral(vy, t)+s0[1]
-        sz = sympy.Integral(vz, t)+s0[2]
-        sl.append([sx,sy,sz])
-
-        magX,magY,magZ=sx,sy,sz
-        print(responseList)
-        try:
-            if OutLinedChecker(magX,magY):
-                ser.write('ball outlined\n')
-            if FloorChecker(magZ) and HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
-                continue
-            if HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
-                state = ThrowerChecker([accelX,accelY,accelZ],0)
-                if state == True:
-                    ser.write('r player hitted by l player\n')
-                elif state == False:
-                    ser.write('l player hitted by r player\n')
-                else:
-                    raise Exception()
-
-            pose = Multipose()
-            pose.main()
-        except:
-            continue 
-        
-        ntime += time.time()-st
-except KeyboardInterrupt:
-    print("quit system....")
+al = [default_unpacked[0],default_unpacked[1],default_unpacked[2]]
+gl = [default_unpacked[3],default_unpacked[4],default_unpacked[5]]
+t = 0
+while True:
+    st = time.time()
+    response = ser.read(36)
+    unpacked = struct.unpack('<9f', response)
+    responseList.append(unpacked)
+    accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = unpacked[0],unpacked[1],unpacked[2],unpacked[3],unpacked[4],unpacked[5],unpacked[6],unpacked[7],unpacked[8]
+    calcPose = Position()
+    calcPose.PositionCompute(al, gl, [x, y, floor], [0, 0, 0], 0.001)
+    print(responseList)
+    try:
+        if OutLinedChecker(magX,magY):
+            ser.write('ball outlined\n')
+        if FloorChecker(magZ) and HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
+            continue
+        if HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
+            state = RootCheckerRecursion([accelX,accelY,accelZ], 0, 0, True)
+            if state == True:
+                ser.write('r player hitted by l player\n')
+            elif state == False:
+                ser.write('l player hitted by r player\n')
+            else:
+                raise Exception()
+        pose = Multipose()
+        pose.main()
+    except:
+        continue 
+    
+    t += time.time()-st
