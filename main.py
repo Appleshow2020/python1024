@@ -50,7 +50,8 @@ class Position:
         for acc, gyro in zip(acc_data, gyro_data):
             self.orientation = self.OrientationUpdate(self.orientation, gyro, dt)
             self.acc_world = self.VectorRotate(acc, self.orientation)
-            self.velocity += self.acc_world * dt
+            #self.velocity += self.acc_world * dt
+            self.velocity = np.add(self.velocity, np.multiply(self.acc_world, dt), out=self.velocity, casting='unsafe')
             self.position += self.velocity * dt
 
         return self.position
@@ -261,52 +262,20 @@ def OutLinedChecker(x: float, y: float) -> bool:
     return False
 
 def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool) -> any:
+    def check_sequence(start, length):
+        return all(li[start + k][0] < li[start + k + 1][0] for k in range(length))
+
+    sequence_lengths = {
+        0: 9, 1: 8, 2: 7, 3: 6, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1
+    }
+
     try:
-        if p == 0:
-            if li[i-10][0] < li[i-9][0] < li[i-8][0] < li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-9, p)
+        if p in sequence_lengths:
+            length = sequence_lengths[p]
+            if check_sequence(i - length - 1, length):
+                return RootCheckerRecursion(li, i - length, p)
             else:
-                return RootCheckerRecursion(li, i, p+1)
-        elif p == 1:
-            if li[i-9][0] < li[i-8][0] < li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-8, p)
-            else:
-                return RootCheckerRecursion(li, i, p+1)
-        elif p == 2:
-            if li[i-8][0] < li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-7, p)
-            else:
-                return RootCheckerRecursion(li, i, p+1)
-        elif p == 3:
-            if li[i-7][0] < li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-6, p)
-            else:
-                return RootCheckerRecursion(li, i, p+1)
-        elif p == 4:
-            if li[i-6][0] < li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-5, p)
-            else:
-                return RootCheckerRecursion(li, i, p+1)
-        elif p == 5:
-            if li[i-5][0] < li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-4, p)
-            else:
-                return RootCheckerRecursion(li, i, p+1)
-        elif p == 6:
-            if li[i-4][0] < li[i-3][0] < li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-3, p)
-            else:
-                return RootCheckerRecursion(li, i, p+1)
-        elif p == 7:
-            if li[i-3][0] < li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-2, p)
-            else:
-                return RootCheckerRecursion(li, i, p+1)
-        elif p == 8:
-            if li[i-2][0] < li[i-1][0]:
-                return RootCheckerRecursion(li, i-1, p)
-            else:
-                return RootCheckerRecursion(li, i, p+1)
+                return RootCheckerRecursion(li, i, p + 1)
         elif p == 9:
             if Flag:
                 bx = al[i][1]
@@ -322,34 +291,38 @@ def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool) -> any:
                 return li[i]
         else:
             raise Exception()
-        
     except IndexError:
-        return RootCheckerRecursion(li,i,p+1)
+        RootCheckerRecursion(li, i, p+1)
 
-def sqrt(x: any) -> any:
+def sqrt(x: float) -> float:
     return x**0.5
+
+def mod(x: float, y: float) -> float:
+    return x%y
 
 print('a')
 Port=int(input())
 
 try:
-    ser = serial.Serial("COM{}".format(Port), 115200)
+    ser = serial.Serial("COM{}".format(Port), 2000000)
 except Exception as e:
     print(e)
+
 # a = float(input())
 # x, y, floor = map(float, input().split())
 
 default = ser.read(36)
 default_unpacked = struct.unpack('<9f',default)
-a = sqrt((default_unpacked[3]+default_unpacked[4])/2)
+a = mod(((default_unpacked[3]+default_unpacked[4])/2), 360)
 x, y, floor = default_unpacked[-3], default_unpacked[-2], default_unpacked[-1]
+print(a, x, y, floor,sep='\n')
 
 i = 0
 
 dx = [-11,-4,4,11,-8,-4,4,8,-8,-4,4,8,-11,-4,4,11]
 dy = [7, 4, -4, -7]
 PointList = []
-while (len(PointList)!=len(dx)):
+while (len(PointList)!=16):
     PointList.append([(a/180)*dx[i] if a!=0 else dx[i], (a/180)*dy[i//4] if a!=0 else dy[i//4]])
     i+=1
 print(*PointList)
@@ -357,8 +330,8 @@ print(*PointList)
 Positioned = ["On Floor", "Hitted", "Thrower", "OutLined", "L In", "R In", "L Out", "R Out"]
 Positioned = [False]*len(Positioned)
 responseList = []
-al = [default_unpacked[0],default_unpacked[1],default_unpacked[2]]
-gl = [default_unpacked[3],default_unpacked[4],default_unpacked[5]]
+al = [[default_unpacked[0],default_unpacked[1],default_unpacked[2]]]
+gl = [[default_unpacked[3],default_unpacked[4],default_unpacked[5]]]
 t = 0
 while True:
     st = time.time()
@@ -368,7 +341,7 @@ while True:
     accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = unpacked[0],unpacked[1],unpacked[2],unpacked[3],unpacked[4],unpacked[5],unpacked[6],unpacked[7],unpacked[8]
     calcPose = Position()
     calcPose.PositionCompute(al, gl, [x, y, floor], [0, 0, 0], 0.001)
-    print(responseList)
+    print(responseList[-1])
     try:
         if OutLinedChecker(magX,magY):
             ser.write('ball outlined\n')
@@ -388,3 +361,4 @@ while True:
         continue 
     
     t += time.time()-st
+    print(t)
