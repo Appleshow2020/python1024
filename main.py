@@ -2,7 +2,7 @@
 # pylint: disable=invalid_name,too-many-instance-attributes, too-many-arguments
 
 from __future__ import (absolute_import, division, unicode_literals)
-import os
+import sys,os
 import serial
 import copy
 import time
@@ -14,83 +14,59 @@ import tensorflow_hub as tfhub
 import kagglehub
 import ctypes
 import struct
+import subprocess
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import asyncio
+from bleak import BleakScanner, BleakClient
+
+SERVICE_UUID = "f5d1f9c8-c2dd-4632-a9db-9568a01847ab"
+CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc92"
 
 cv.destroyAllWindows()
-
-class KalmanFilter:
-    def __init__(self, A, B, H, Q, R, P, x):
-        self.A = A  # State transition matrix
-        self.B = B  # Control input matrix
-        self.H = H  # Observation matrix
-        self.Q = Q  # Process noise covariance
-        self.R = R  # Measurement noise covariance
-        self.P = P  # Estimate error covariance
-        self.x = x  # State estimate
-
-    def predict(self, u=np.zeros(1)):
-        self.x = np.dot(self.A, self.x) + np.dot(self.B, u)
-        self.P = np.dot(np.dot(self.A, self.P), self.A.T) + self.Q
-
-    def update(self, z):
-        y = z - np.dot(self.H, self.x)
-        S = np.dot(self.H, np.dot(self.P, self.H.T)) + self.R
-        K = np.dot(np.dot(self.P, self.H.T), np.linalg.inv(S))
-        self.x = self.x + np.dot(K, y)
-        self.P = self.P - np.dot(np.dot(K, self.H), self.P)
-        return self.x
+subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
 
 class Position:
-    def __init__(self):
-        self.kf = self.KalmanFilterInitialize()
-    def KalmanFilterInitialize(self):
-        A = np.eye(6)
-        B = np.eye(6)
-        H = np.zeros((3,6))
-        H[:3, :3] = np.eye(3)
-        Q = np.eye(6) * 0.1
-        R = np.eye(3) * 0.1
-        P = np.eye(6)
-        x = np.zeros(6)
-        return KalmanFilter(A, B, H, Q, R, P, x)
-    def OrientationUpdate(self, orientation, gyro_data, dt):
-        self.omega = np.array([0, gyro_data[0], gyro_data[1], gyro_data[2]])
-        self.dq = 0.5 * self.MultiplyQuaternion(orientation, self.omega)
-        return orientation + self.dq * dt
+    def __init__(self, initial_position, initial_velocity, dt):
+        self.position = np.array(initial_position)
+        self.velocity = np.array(initial_velocity, dtype=np.float64)
+        self.orientation = np.array([1.0, 0.0, 0.0, 0.0])
+        self.dt = dt
+
+    def OrientationUpdate(self, gyro_data):
+        gyro_data = np.array(gyro_data)
+        omega = np.array([0.0, gyro_data[0], gyro_data[1], gyro_data[2]])
+        dq = 0.5 * self.MultiplyQuaternion(self.orientation, omega) * self.dt
+        self.orientation += dq
 
     def MultiplyQuaternion(self, q, r):
-        self.w1, self.x1, self.y1, self.z1 = q
-        self.w2, self.x2, self.y2, self.z2 = r
+        w1, x1, y1, z1 = q
+        w2, x2, y2, z2 = r
         return np.array([
-            self.w1 * self.w2 - self.x1 * self.x2 - self.y1 * self.y2 - self.z1 * self.z2,
-            self.w1 * self.x2 + self.x1 * self.w2 + self.y1 * self.z2 - self.z1 * self.y2,
-            self.w1 * self.y2 - self.x1 * self.z2 + self.y1 * self.w2 + self.z1 * self.x2,
-            self.w1 * self.z2 + self.x1 * self.y2 - self.y1 * self.x2 + self.z1 * self.w2
+            w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
+            w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+            w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
+            w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
         ])
 
-    def VectorRotate(self, vector, quaternion):
-        self.q_conjugate = quaternion * np.array([1, -1, -1, -1])
-        self.q_vector = np.concatenate(([0], vector))
-        self.rotated_vector = self.MultiplyQuaternion(self.MultiplyQuaternion(quaternion, self.q_vector), self.q_conjugate)
-        return self.rotated_vector[1:]
+    def RotateVector(self, vector):
+        q_conjugate = self.orientation * np.array([1, -1, -1, -1])
+        q_vector = np.concatenate(([0], vector))
+        rotated_vector = self.MultiplyQuaternion(self.MultiplyQuaternion(self.orientation, q_vector), q_conjugate)
+        return rotated_vector[1:]
 
-
-    def PositionCompute(self, acc_data, gyro_data, initial_position, initial_velocity, dt):
-        self.position = np.array(initial_position)
-        self.velocity = np.array(initial_velocity)
-        self.orientation = np.array([1, 0, 0, 0])
-
+    def PositionUpdate(self, acc_data, gyro_data):
         for acc, gyro in zip(acc_data, gyro_data):
-            self.orientation = self.OrientationUpdate(self.orientation, gyro, dt)
-            self.acc_world = self.VectorRotate(acc, self.orientation)
-            #self.velocity += self.acc_world * dt
-            self.velocity = np.add(self.velocity, np.multiply(self.acc_world, dt), out=self.velocity, casting='unsafe')
-            self.position += self.velocity * dt
+            self.OrientationUpdate(gyro)
+            acc_world = self.RotateVector(acc)
+            self.velocity += acc_world * self.dt
+            self.position += self.velocity * self.dt
 
-            z = self.position[:3]
-            updated_state = self.kf.update(z)
-            self.position[:3] = updated_state[:3]
-        return self.position
+    def get_position(self):
+        return self.position.tolist()
 
+
+cv.destroyAllWindows()
 
 class Multipose:
     def __init__(self):
@@ -100,30 +76,29 @@ class Multipose:
         MFStartup = ctypes.windll.mfplat.MFStartup
         MFShutdown = ctypes.windll.mfplat.MFShutdown
         MF_VERSION = 0x00020070
-
         hr = MFStartup(MF_VERSION, 0)
-        if hr != 0:
-            raise Exception('hr!=0')
+        if hr!= 0:
+            raise Exception()
         return MFShutdown
     
     def Arguments(self):
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("--device", type=int, default=0)
         self.parser.add_argument("--file", type=str, default=None)
-        self.parser.add_argument("--width", help='cap width', type=int, default=960)
-        self.parser.add_argument("--height", help='cap height', type=int, default=540)
+        self.parser.add_argument("--width", type=int, default=960)
+        self.parser.add_argument("--height", type=int, default=540)
         self.parser.add_argument('--mirror', action='store_true', default=True)
         self.parser.add_argument("--keypoint_score", type=float, default=0.4)
         self.parser.add_argument("--bbox_score", type=float, default=0.3)
         self.args = self.parser.parse_args()
         return self.args
- 
+
     def Inference(self, model, input_size, image):
         self.image_width, self.image_height = image.shape[1], image.shape[0]
-        self.input_image = cv.resize(image, dsize=(input_size, input_size))  
-        self.input_image = cv.cvtColor(self.input_image, cv.COLOR_BGR2RGB)  
-        self.input_image = self.input_image.reshape(-1, input_size, input_size, 3)  
-        self.input_image = tf.cast(self.input_image, dtype=tf.int32)  
+        self.input_image = cv.resize(image, dsize=(input_size, input_size))
+        self.input_image = cv.cvtColor(self.input_image, cv.COLOR_BGR2RGB)
+        self.input_image = self.input_image.reshape(-1, input_size, input_size, 3)
+        self.input_image = tf.cast(self.input_image, dtype=tf.int32)
         self.outputs = model(self.input_image)
         self.keypoints_with_scores = self.outputs['output_0'].numpy()
         self.keypoints_with_scores = np.squeeze(self.keypoints_with_scores)
@@ -150,87 +125,127 @@ class Multipose:
         return self.keypoints_list, self.scores_list, self.bbox_list
 
     def main(self):
-        self.args = self.Arguments()
-        self.cap_device = self.args.device
-        self.cap_width = self.args.width
-        self.cap_height = self.args.height
-        self.MFShutdown = self.InitializingMedia()
-        if self.args.file is not None:
-            self.cap_device = self.args.file
-        self.mirror = self.args.mirror
-        self.keypoint_score_th = self.args.keypoint_score
-        self.bbox_score_th = self.args.bbox_score
-        self.cap = cv.VideoCapture(0)
-        self.cap.open(self.cap_device)
-        self.cap.set(cv.CAP_PROP_FRAME_WIDTH, self.cap_width)
-        self.cap.set(cv.CAP_PROP_FRAME_HEIGHT, self.cap_height)
-        self.cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
-        self.model_url = kagglehub.model_download("google/movenet/tensorFlow2/multipose-lightning")
-        self.input_size = 256
-        self.module = tfhub.load(self.model_url)
-        self.model = self.module.signatures['serving_default']
-        self.temp = 0
-        while True:
-            self.start_time = time.time()
-            self.ret, self.frame = self.cap.read()
-            print(self.ret)
-            if not self.ret:
-                if self.temp > 3:
-                    break
-                print(f't{self.temp}')
-                time.sleep(1)
-                self.temp += 1
-                continue
-            if self.mirror:
-                self.frame = cv.flip(self.frame, 1)  
-            self.debug_image = copy.deepcopy(self.frame)
-            keypoints_list, scores_list, bbox_list = self.Inference(self.model, self.input_size, self.frame)
-            self.elapsed_time = time.time() - self.start_time
-            self.debug_image = self.DebugDraw(
-                self.debug_image,
-                self.elapsed_time,
-                self.keypoint_score_th,
-                keypoints_list,
-                scores_list,
-                self.bbox_score_th,
-                bbox_list
-            )
-            self.key = cv.waitKey(1)
-            if self.key == 27:  
-                break
-            cv.imshow('cam1', self.debug_image)
-        self.cap.release()
-        cv.destroyAllWindows()
-        self.MFShutdown()
+        global args, cap_device, cap_width, cap_height, MFShutdown, mirror, keypoint_score_th, bbox_score_th, model, input_size
+        args = self.Arguments()
+        cap_device = args.device
+        cap_width = args.width
+        cap_height = args.height
+        MFShutdown = self.InitializingMedia()
+        if args.file is not None:
+            cap_device = args.file
+        mirror = args.mirror
+        keypoint_score_th = args.keypoint_score
+        bbox_score_th = args.bbox_score
+        model_url = kagglehub.model_download("google/movenet/tensorFlow2/multipose-lightning")
+        input_size = 256
+        module = tfhub.load(model_url)
+        model = module.signatures['serving_default']
 
     def DebugDraw(self, image, elapsed_time, keypoint_score_th, keypoints_list, scores_list, bbox_score_th, bbox_list):
         self.debug_image = copy.deepcopy(image)
-        for idx1, idx2 in [(0,1),(0,2),(1,3),(2,4),(0,5),(0,6),(5,6),(5,7),(7,9),(6,8),(8,10),(11,12),(5,11),(11,13),(13,15),(6,12),(12,14),(14,16)]:
-            if self.scores[idx1] > keypoint_score_th and self.scores[idx2] > keypoint_score_th:
-                self.point01 = self.keypoints[idx1]
-                self.point02 = self.keypoints[idx2]
-                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
-        for keypoint, score in zip(keypoints_list, scores_list):
-                if score > self.keypoint_score_th:
-                    cv.circle(self.debug_image, keypoint, 6, (255, 255, 255), -1)
-                    cv.circle(self.debug_image, keypoint, 3, (0, 0, 0), -1)
-                    if KeypointBound(keypoint):
-                        cv.putText(self.debug_image, 'Keypoint out of bounds', keypoint, cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2, cv.LINE_AA)
-        for bbox in bbox_list:
-            if bbox[4] > bbox_score_th:
-                cv.rectangle(self.debug_image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 255, 255), 4)
-                cv.rectangle(self.debug_image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 0, 0), 2)
+
+        # Draw skeleton
+        for keypoints, scores in zip(keypoints_list, scores_list):
+            for idx1, idx2 in [(0,1),(0,2),(1,3),(2,4),(0,5),(0,6),(5,6),(5,7),(7,9),(6,8),(8,10),(11,12),(5,11),(11,13),(13,15),(6,12),(12,14),(14,16)]:
+                if scores[idx1] > keypoint_score_th and scores[idx2] > keypoint_score_th:
+                    self.point01 = keypoints[idx1]
+                    self.point02 = keypoints[idx2]
+                    cv.line(self.debug_image, tuple(self.point01), tuple(self.point02), (255, 255, 255), 4)
+                    cv.line(self.debug_image, tuple(self.point01), tuple(self.point02), (0, 0, 0), 2)
+
+        for keypoints, scores in zip(keypoints_list, scores_list):
+            for keypoint, score in zip(keypoints, scores):
+                if score > keypoint_score_th:
+                    cv.circle(self.debug_image, tuple(keypoint), 6, (255, 255, 255), -1)
+                    cv.circle(self.debug_image, tuple(keypoint), 3, (0, 0, 0), -1)
+
+        for self.bbox in bbox_list:
+            if self.bbox[4] > bbox_score_th:
+                cv.rectangle(self.debug_image, (self.bbox[0], self.bbox[1]), (self.bbox[2], self.bbox[3]), (255, 255, 255), 4)
+                cv.rectangle(self.debug_image, (self.bbox[0], self.bbox[1]), (self.bbox[2], self.bbox[3]), (0, 0, 0), 2)
+
         cv.putText(self.debug_image, "Elapsed Time : " + '{:.1f}'.format(elapsed_time * 1000) + "ms", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 4, cv.LINE_AA)
         cv.putText(self.debug_image, "Elapsed Time : " + '{:.1f}'.format(elapsed_time * 1000) + "ms", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2, cv.LINE_AA)
+
         return self.debug_image
+        
+            
+            
+class Animation:
+    def __init__(self, **kwargs):
+        self.al = kwargs['al']
+        self.gl = kwargs['gl']
+        self.ml = kwargs['ml']
+        
+        self.flat = [[item for sublist in self.al for item in sublist],
+                     [item for sublist in self.gl for item in sublist],
+                     [item for sublist in self.ml for item in sublist]]
+        
+        self.common_xlim = (0, 100)
+        self.fig, self.axs = plt.subplots(3, 1)
+        self.lines = {
+            'axl': self.axs[0].plot([], [], 'r-')[0],
+            'ayl': self.axs[0].plot([], [], 'r-')[0],
+            'azl': self.axs[0].plot([], [], 'r-')[0],
+            'gxl': self.axs[1].plot([], [], 'r-')[0],
+            'gyl': self.axs[1].plot([], [], 'r-')[0],
+            'gzl': self.axs[1].plot([], [], 'r-')[0],
+            'mxl': self.axs[2].plot([], [], 'r-')[0],
+            'myl': self.axs[2].plot([], [], 'r-')[0],
+            'mzl': self.axs[2].plot([], [], 'r-')[0],
+            
+        }
+        
+        for ax in self.axs:
+            ax.set_xlim(self.common_xlim)
+        
+        self.tlist = []
     
+    def update(self, frame):
+        self.axs[0].set_ylim((min(self.flat[0]), max(self.flat[0])))
+        self.axs[1].set_ylim((min(self.flat[1]), max(self.flat[1])))
+        self.axs[2].set_ylim((min(self.flat[2]), max(self.flat[2])))
+        
+        self.axl = [k[0] for k in self.al]
+        self.ayl = [k[1] for k in self.al]
+        self.azl = [k[2] for k in self.al]
+        self.gxl = [k[0] for k in self.ml]
+        self.gyl = [k[1] for k in self.ml]
+        self.gzl = [k[2] for k in self.ml]
+        self.mxl = [k[0] for k in self.gl]
+        self.myl = [k[1] for k in self.gl]
+        self.mzl = [k[2] for k in self.gl]
+        self.tlist.append(frame)
+        
+        if len(self.tlist) > 1:
+            self.new_xlim = (self.tlist[-1]-self.tlist[0], self.tlist[-1])
+            for ax in self.axs:
+                ax.set_xlim(self.new_xlim)
+        self.lines['axl'].set_data(self.tlist, self.axl)
+        self.lines['ayl'].set_data(self.tlist, self.ayl)
+        self.lines['azl'].set_data(self.tlist, self.azl)
+        self.lines['gxl'].set_data(self.tlist, self.gxl)
+        self.lines['gyl'].set_data(self.tlist, self.gyl)
+        self.lines['gzl'].set_data(self.tlist, self.gzl)
+        self.lines['mxl'].set_data(self.tlist, self.mxl)
+        self.lines['myl'].set_data(self.tlist, self.myl)
+        self.lines['mzl'].set_data(self.tlist, self.mzl)
+
+        return self.lines.values()
     
+    def main(self):
+        self.ani = animation.FuncAnimation(self.fig, self.__class__.update, frames=range(1000), blit=True, interval = 100)
+        plt.tight_layout()
+        plt.show()
+        
+        print(self)
+
 def KeypointBound(keypoint: int) -> bool:
     x, y = keypoint
     return x<0
 
 def FloorChecker(height: float) -> bool:
+    global Positioned
     if height == floor:
         Positioned[0] = True
         return True
@@ -243,7 +258,6 @@ def HittedChecker(ax1: float, ay1: float, az1: float,
     try:
         if FloorChecker(mz):
             return False
-            
         if (ax1<ax2) and (ay1<ay2) and not (az1<az2):
             Positioned[1] = True
         else:
@@ -253,6 +267,7 @@ def HittedChecker(ax1: float, ay1: float, az1: float,
     return True
 
 def BallPlaceChecker(bx: float, by: float) -> str: 
+    global Positioned
     if ((bx <= x)and(bx >= PointList[4][0])) and ((by <= PointList[4][1])and(by>=PointList[8][1])):
         Positioned[4] = True
         Positioned[5] = False
@@ -295,8 +310,8 @@ def OutLinedChecker(x: float, y: float) -> bool:
     Positioned[3] = False
     return False
 
-def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool) -> any:
-    def check_sequence(start, length):
+def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool | None = ValueError) -> any:
+    def Local_CheckSequence(start, length) -> bool:
         return all(li[start + k][0] < li[start + k + 1][0] for k in range(length))
 
     sequence_lengths = {
@@ -306,14 +321,14 @@ def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool) -> any:
     try:
         if p in sequence_lengths:
             length = sequence_lengths[p]
-            if check_sequence(i - length - 1, length):
+            if Local_CheckSequence(i - length - 1, length):
                 return RootCheckerRecursion(li, i - length, p, Flag)
             else:
                 return RootCheckerRecursion(li, i, p + 1, Flag)
         elif p == 9:
             if Flag:
-                bx = al[i][1]
-                by = al[i][2]
+                bx = li[i][1]
+                by = li[i][2]
 
                 if (BallPlaceChecker(bx, by) == "li") or (BallPlaceChecker(bx, by) == "lo"):
                     return True
@@ -328,24 +343,68 @@ def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool) -> any:
     except IndexError:
         RootCheckerRecursion(li, i, p+1, Flag)
 
+async def findDevice():
+    devices = await BleakScanner.discover()
+    for device in devices:
+        try:
+            async with BleakClient(device.address) as client:
+                services = await client.get_services()
+                if SERVICE_UUID in services:
+                    await client.start_notify(CHARACTERISTIC_UUID)
+                    await asyncio.sleep(30)
+                    await client.stop_notify(CHARACTERISTIC_UUID)
+                else:pass
+        except Exception as e:
+            print(e)
+            continue
+
 def sqrt(x: float) -> float:
     return x**0.5
 
 def mod(x: float, y: float) -> float:
     return x%y
 
+def average(x: list) -> float:
+    return sum(x)/len(x)
+
 def S2D(scientific_str: any) -> any:
     decimal_value = float(scientific_str)
     return format(decimal_value, 'f')
 
+def RMS(l: list) -> float:
+    return sqrt(sum(average([x**2 for x in l])))
+
 
 print('a')
-Port=int(input())
+# Port=int(input())
+def inp():
+    global Port, ser
+    def inp2():
+        global Port
+        try:
+            print("Port : ",end = ' ')
+            Port=int(input())
+        except:
+            print('Invalid Port Number')
+            inp2()
+    inp2()
 
-try:
-    ser = serial.Serial("COM{}".format(Port), 2000000)
-except Exception as e:
-    print(e)
+    def defserial():
+        global ser
+        try:
+            ser = serial.Serial("COM{}".format(Port), 2000000, timeout=10)
+            print(ser)
+        except Exception as e:
+            print(e)
+            print('type \'continue\' to continue...')
+            if input() == 'continue':
+                inp()
+            else:
+                print('retry...')
+                defserial()
+    defserial()  
+
+inp()
 # a = float(input())
 # x, y, floor = map(float, input().split())
 
@@ -361,7 +420,7 @@ default_unpacked[5] /= 131
 default_unpacked = tuple(default_unpacked)
 a = mod(((default_unpacked[3]+default_unpacked[4])/2), 360)
 x, y, floor = default_unpacked[-3], default_unpacked[-2], default_unpacked[-1]
-print(a, x, y, floor,sep='\n')
+print(a, x, y, floor, sep='\n')
 
 i = 0
 
@@ -372,16 +431,50 @@ PointList = []
 while (len(PointList)!=16):
     PointList.append([(a/180)*dx[i] if a!=0 else dx[i], (a/180)*dy[i//4] if a!=0 else dy[i//4]])
     i+=1
-print(*PointList)
 
 Positioned = ["On Floor", "Hitted", "Thrower", "OutLined", "L In", "R In", "L Out", "R Out"]
 Positioned = [False]*len(Positioned)
 responseList = []
 al = [[default_unpacked[0],default_unpacked[1],default_unpacked[2]]]
 gl = [[default_unpacked[3],default_unpacked[4],default_unpacked[5]]]
+ml = [[x, y, floor]]
 t = 0
+tlist= [0]
+
+pose = Multipose()
+pose.main()
+calcPose = Position(ml[-1],[0,0,0] ,0.001)
+animate = Animation(al = al, gl = gl, ml = ml)
+arduinoBLE = findDevice()
+
+cap = cv.VideoCapture(0)
+cap.open(cap_device)
+cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
+cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
+temp = 0
+
 while True:
     st = time.time()
+    
+    ret, frame = cap.read()
+    if not ret:
+        if temp > 3:
+            break
+        print(f't{temp}')
+        time.sleep(1)
+        temp += 1
+        continue
+    if mirror:
+        frame = cv.flip(frame, 1)  
+    debug_image = copy.deepcopy(frame)
+    keypoints_list, scores_list, bbox_list = pose.Inference(model, input_size, frame)
+
+    key = cv.waitKey(1)
+    if key == 27:  
+        break
+    cv.imshow('cam1', debug_image)
+    
     response = ser.read(36)
     unpacked = struct.unpack('<9f', response)
     unpacked = list(unpacked)
@@ -394,8 +487,12 @@ while True:
     unpacked = tuple(unpacked)
     responseList.append(unpacked)
     accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = unpacked[0],unpacked[1],unpacked[2],unpacked[3],unpacked[4],unpacked[5],unpacked[6],unpacked[7],unpacked[8]
-    calcPose = Position()
-    calcPose.PositionCompute(al, gl, [x, y, floor], [0, 0, 0], 0.001)
+    
+    calcPose.PositionUpdate(al, gl)
+    
+    al.append([accelX, accelY, accelZ])
+    gl.append([gyroX, gyroY, gyroZ])
+    ml.append(calcPose.get_position())
     print(responseList[-1])
     try:
         if OutLinedChecker(magX,magY):
@@ -412,11 +509,19 @@ while True:
                 ser.write('l player hitted by r player\n')
                 print('l player hitted by r player')
             else:
-                raise Exception()
-        pose = Multipose()
-        pose.main()
-    except:
-        continue 
+                pass
+    except Exception as exception:
+        print(exception)
+    elapsed = time.time()-st
+    tlist.append(tlist[-1]+elapsed)
+    t+=elapsed
+    debug_image = pose.DebugDraw(
+        debug_image,
+        elapsed,
+        keypoint_score_th,
+        keypoints_list,
+        scores_list,
+        bbox_score_th,
+        bbox_list
+    )
     
-    t += time.time()-st
-    print(t)
