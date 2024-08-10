@@ -21,7 +21,9 @@ import asyncio
 from bleak import BleakScanner, BleakClient
 
 SERVICE_UUID = "f5d1f9c8-c2dd-4632-a9db-9568a01847ab"
-CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc92"
+ACCEL_CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc92"
+GYRO_CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc93"
+MAG_CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc94"
 
 cv.destroyAllWindows()
 subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
@@ -240,11 +242,11 @@ class Animation:
         
         print(self)
 
-def KeypointBound(keypoint: int) -> bool:
+async def KeypointBound(keypoint: int) -> bool:
     x, y = keypoint
     return x<0
 
-def FloorChecker(height: float) -> bool:
+async def FloorChecker(height: float) -> bool:
     global Positioned
     if height == floor:
         Positioned[0] = True
@@ -252,7 +254,7 @@ def FloorChecker(height: float) -> bool:
     else:
         Positioned[0] = False
         return False
-def HittedChecker(ax1: float, ay1: float, az1: float,
+async def HittedChecker(ax1: float, ay1: float, az1: float,
                   ax2: float, ay2: float, az2: float,
                   mz: float) -> bool: 
     try:
@@ -266,7 +268,7 @@ def HittedChecker(ax1: float, ay1: float, az1: float,
         return False
     return True
 
-def BallPlaceChecker(bx: float, by: float) -> str: 
+async def BallPlaceChecker(bx: float, by: float) -> str: 
     global Positioned
     if ((bx <= x)and(bx >= PointList[4][0])) and ((by <= PointList[4][1])and(by>=PointList[8][1])):
         Positioned[4] = True
@@ -303,14 +305,14 @@ def BallPlaceChecker(bx: float, by: float) -> str:
     else:
         return None
 
-def OutLinedChecker(x: float, y: float) -> bool: 
+async def OutLinedChecker(x: float, y: float) -> bool: 
     if BallPlaceChecker(x,y) == None:
         Positioned[3] = True
         return True
     Positioned[3] = False
     return False
 
-def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool | None = ValueError) -> any:
+async def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool | None = ValueError) -> any:
     def Local_CheckSequence(start, length) -> bool:
         return all(li[start + k][0] < li[start + k + 1][0] for k in range(length))
 
@@ -343,71 +345,107 @@ def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool | None = ValueErro
     except IndexError:
         RootCheckerRecursion(li, i, p+1, Flag)
 
-async def findDevice():
+
+async def scan():
+    global devicelist
+    devicelist = []
+    
     devices = await BleakScanner.discover()
     for device in devices:
-        try:
-            async with BleakClient(device.address) as client:
-                services = await client.get_services()
-                if SERVICE_UUID in services:
-                    await client.start_notify(CHARACTERISTIC_UUID)
-                    await asyncio.sleep(30)
-                    await client.stop_notify(CHARACTERISTIC_UUID)
-                else:pass
-        except Exception as e:
-            print(e)
-            continue
-
-def sqrt(x: float) -> float:
+        print(device)
+        devicelist.append(device.address[:18])
+        
+async def sqrt(x: float) -> float:
     return x**0.5
 
-def mod(x: float, y: float) -> float:
+async def mod(x: float, y: float) -> float:
     return x%y
 
-def average(x: list) -> float:
+async def average(x: list) -> float:
     return sum(x)/len(x)
 
-def S2D(scientific_str: any) -> any:
+async def S2D(scientific_str: any) -> any:
     decimal_value = float(scientific_str)
     return format(decimal_value, 'f')
 
-def RMS(l: list) -> float:
+async def RMS(l: list) -> float:
     return sqrt(sum(average([x**2 for x in l])))
 
 
+asyncio.run(scan())
+
 print('a')
+
 # Port=int(input())
-def inp():
-    global Port, ser
-    def inp2():
-        global Port
-        try:
-            print("Port : ",end = ' ')
-            Port=int(input())
-        except:
-            print('Invalid Port Number')
-            inp2()
-    inp2()
+#def inp():
+#    global Port, ser
+#    def inp2():
+#        global Port
+#        try:
+#            print("Port : ",end = ' ')
+#            Port=int(input())
+#        except:
+#            print('Invalid Port Number')
+#            inp2()
+#    inp2()
+#
+#    def defserial():
+#        global ser
+#        try:
+#            ser = serial.Serial("COM{}".format(Port), 2000000, timeout=10)
+#            print(ser)
+#        except Exception as e:
+#            print(e)
+#            print('type \'continue\' to continue...')
+#            if input() == 'continue':
+#                inp()
+#            else:
+#                print('retry...')
+#                defserial()
+#    defserial()  
+#
+#inp()
 
-    def defserial():
-        global ser
-        try:
-            ser = serial.Serial("COM{}".format(Port), 2000000, timeout=10)
-            print(ser)
-        except Exception as e:
-            print(e)
-            print('type \'continue\' to continue...')
-            if input() == 'continue':
-                inp()
-            else:
-                print('retry...')
-                defserial()
-    defserial()  
 
-inp()
 # a = float(input())
 # x, y, floor = map(float, input().split())
+async def get_device():
+    global nano_device
+    devices = await BleakScanner.discover()
+    nano_device = None
+    for device in devices:
+        for service in device.metadata['uuids']:
+            if SERVICE_UUID in service:
+                nano_device = device
+                break
+    print(nano_device)
+asyncio.run(get_device())
+async def getDefault():
+    async with BleakClient(nano_device.address) as client:
+        print("Connected: {client.is_connected}")
+        def Callback1(sender, data):
+            global al
+            ax, ay, az = data[:4], data[4:8], data[8:]
+            al.append([ax, ay, az])
 
+        def Callback2(sender, data):
+            global gl
+            gx, gy, gz = data[:4], data[4:8], data[8:]
+            gl.append([gx, gy, gz])
+
+        def Callback3(sender, data):
+            global ml
+            mx, my, mz = data[:4], data[4:8], data[8:]
+            ml.append([mx, my, mz])
+
+        await client.start_notify(ACCEL_CHARACTERISTIC_UUID, Callback1)
+        await client.start_notify(GYRO_CHARACTERISTIC_UUID, Callback2)
+        await client.start_notify(MAG_CHARACTERISTIC_UUID, Callback3)
+
+        await client.stop_notify(ACCEL_CHARACTERISTIC_UUID)
+        await client.stop_notify(GYRO_CHARACTERISTIC_UUID)
+        await client.stop_notify(MAG_CHARACTERISTIC_UUID)
+asyncio.run(getDefault())
 default = ser.read(36)
 default_unpacked = struct.unpack('<9f',default)
 default_unpacked = list(default_unpacked)
@@ -445,7 +483,6 @@ pose = Multipose()
 pose.main()
 calcPose = Position(ml[-1],[0,0,0] ,0.001)
 animate = Animation(al = al, gl = gl, ml = ml)
-arduinoBLE = findDevice()
 
 cap = cv.VideoCapture(0)
 cap.open(cap_device)
@@ -453,75 +490,110 @@ cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
 cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
 cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
 temp = 0
-
-while True:
-    st = time.time()
-    
-    ret, frame = cap.read()
-    if not ret:
-        if temp > 3:
-            break
-        print(f't{temp}')
-        time.sleep(1)
-        temp += 1
-        continue
-    if mirror:
-        frame = cv.flip(frame, 1)  
-    debug_image = copy.deepcopy(frame)
-    keypoints_list, scores_list, bbox_list = pose.Inference(model, input_size, frame)
-
-    key = cv.waitKey(1)
-    if key == 27:  
-        break
-    cv.imshow('cam1', debug_image)
-    
-    response = ser.read(36)
-    unpacked = struct.unpack('<9f', response)
-    unpacked = list(unpacked)
-    unpacked[0] /= 16384
-    unpacked[1] /= 16384
-    unpacked[2] /= 16384
-    unpacked[3] /= 131
-    unpacked[4] /= 131
-    unpacked[5] /= 131
-    unpacked = tuple(unpacked)
-    responseList.append(unpacked)
-    accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = unpacked[0],unpacked[1],unpacked[2],unpacked[3],unpacked[4],unpacked[5],unpacked[6],unpacked[7],unpacked[8]
-    
-    calcPose.PositionUpdate(al, gl)
-    
-    al.append([accelX, accelY, accelZ])
-    gl.append([gyroX, gyroY, gyroZ])
-    ml.append(calcPose.get_position())
-    print(responseList[-1])
-    try:
-        if OutLinedChecker(magX,magY):
-            ser.write('ball outlined\n')
-            print('ball outlined')
-        if FloorChecker(magZ) and HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
+def devicenotfound():    
+    if not nano_device:
+        print("Device not found")
+        time.sleep(5000)
+        devicenotfound()
+        
+async def main():
+    while True:
+        st = time.time()
+        
+        ret, frame = cap.read()
+        if not ret:
+            if temp > 3:
+                break
+            print(f't{temp}')
+            time.sleep(1)
+            temp += 1
             continue
-        if HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
-            state = RootCheckerRecursion([accelX,accelY,accelZ], 0, 0, True)
-            if state == True:
-                ser.write('r player hitted by l player\n')
-                print('r player hitted by l player')
-            elif state == False:
-                ser.write('l player hitted by r player\n')
-                print('l player hitted by r player')
-            else:
-                pass
-    except Exception as exception:
-        print(exception)
-    elapsed = time.time()-st
-    tlist.append(tlist[-1]+elapsed)
-    t+=elapsed
-    debug_image = pose.DebugDraw(
-        debug_image,
-        elapsed,
-        keypoint_score_th,
-        keypoints_list,
-        scores_list,
-        bbox_score_th,
-        bbox_list
-    )
-    
+        if mirror:
+            frame = cv.flip(frame, 1)  
+        debug_image = copy.deepcopy(frame)
+        keypoints_list, scores_list, bbox_list = pose.Inference(model, input_size, frame)
+
+        key = cv.waitKey(1)
+        if key == 27:  
+            break
+        cv.imshow('cam1', debug_image)
+
+        # response = ser.read(36)
+        # unpacked = struct.unpack('<9f', response)
+        # unpacked = list(unpacked)
+        # unpacked[0] /= 16384
+        # unpacked[1] /= 16384
+        # unpacked[2] /= 16384
+        # unpacked[3] /= 131
+        # unpacked[4] /= 131
+        # unpacked[5] /= 131
+        # unpacked = tuple(unpacked)
+        # responseList.append(unpacked)
+        # accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = unpacked[0],unpacked[1],unpacked[2],unpacked[3],unpacked[4],unpacked[5],unpacked[6],unpacked[7],unpacked[8]
+
+        # calcPose.PositionUpdate(al, gl)
+
+        # al.append([accelX, accelY, accelZ])
+        # gl.append([gyroX, gyroY, gyroZ])
+        # ml.append(calcPose.get_position())
+        # print(responseList[-1])
+
+        async with BleakClient(nano_device.address) as client:
+            print("Connected: {client.is_connected}")
+            def Callback1(sender, data):
+                global al
+                ax, ay, az = data[:4], data[4:8], data[8:]
+                al.append([ax, ay, az])
+                
+            def Callback2(sender, data):
+                global gl
+                gx, gy, gz = data[:4], data[4:8], data[8:]
+                gl.append([gx, gy, gz])
+            
+            def Callback3(sender, data):
+                global ml
+                mx, my, mz = data[:4], data[4:8], data[8:]
+                ml.append([mx, my, mz])
+                
+            await client.start_notify(ACCEL_CHARACTERISTIC_UUID, Callback1)
+            await client.start_notify(GYRO_CHARACTERISTIC_UUID, Callback2)
+            await client.start_notify(MAG_CHARACTERISTIC_UUID, Callback3)
+            
+            await client.stop_notify(ACCEL_CHARACTERISTIC_UUID)
+            await client.stop_notify(GYRO_CHARACTERISTIC_UUID)
+            await client.stop_notify(MAG_CHARACTERISTIC_UUID)
+            
+        accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = al[-1][0], al[-1][1], al[-1][2], gl[-1][0], gl[-1][1], gl[-1][2], ml[-1][0], ml[-1][1], ml[-1][2]
+        responseList.append([accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ])
+        try:
+            if OutLinedChecker(magX,magY):
+                ser.write('ball outlined\n')
+                print('ball outlined')
+            if FloorChecker(magZ) and HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
+                continue
+            if HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
+                state = RootCheckerRecursion([accelX,accelY,accelZ], 0, 0, True)
+                if state == True:
+                    ser.write('r player hitted by l player\n')
+                    print('r player hitted by l player')
+                elif state == False:
+                    ser.write('l player hitted by r player\n')
+                    print('l player hitted by r player')
+                else:
+                    pass
+        except Exception as exception:
+            print(exception)
+            
+        elapsed = await time.time()-st
+        tlist.append(tlist[-1]+elapsed)
+        t+=elapsed
+        debug_image = pose.DebugDraw(
+            debug_image,
+            elapsed,
+            keypoint_score_th,
+            keypoints_list,
+            scores_list,
+            bbox_score_th,
+            bbox_list
+        )
+asyncio.run(main())
