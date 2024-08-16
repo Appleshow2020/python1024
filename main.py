@@ -2,8 +2,8 @@
 # pylint: disable=invalid_name,too-many-instance-attributes, too-many-arguments
 
 from __future__ import (absolute_import, division, unicode_literals)
-import sys,os
-import serial
+import os
+# import serial
 import copy
 import time
 import argparse
@@ -13,8 +13,8 @@ import tensorflow as tf
 import tensorflow_hub as tfhub
 import kagglehub
 import ctypes
-import struct
-import subprocess
+# import struct
+# import subprocess
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import asyncio
@@ -26,7 +26,6 @@ GYRO_CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc93"
 MAG_CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc94"
 
 cv.destroyAllWindows()
-subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
 
 class Position:
     def __init__(self, initial_position, initial_velocity, dt):
@@ -66,9 +65,6 @@ class Position:
 
     def get_position(self):
         return self.position.tolist()
-
-
-cv.destroyAllWindows()
 
 class Multipose:
     def __init__(self):
@@ -146,7 +142,6 @@ class Multipose:
     def DebugDraw(self, image, elapsed_time, keypoint_score_th, keypoints_list, scores_list, bbox_score_th, bbox_list):
         self.debug_image = copy.deepcopy(image)
 
-        # Draw skeleton
         for keypoints, scores in zip(keypoints_list, scores_list):
             for idx1, idx2 in [(0,1),(0,2),(1,3),(2,4),(0,5),(0,6),(5,6),(5,7),(7,9),(6,8),(8,10),(11,12),(5,11),(11,13),(13,15),(6,12),(12,14),(14,16)]:
                 if scores[idx1] > keypoint_score_th and scores[idx2] > keypoint_score_th:
@@ -242,11 +237,11 @@ class Animation:
         
         print(self)
 
-async def KeypointBound(keypoint: int) -> bool:
+def KeypointBound(keypoint: int) -> bool:
     x, y = keypoint
     return x<0
 
-async def FloorChecker(height: float) -> bool:
+def FloorChecker(height: float) -> bool:
     global Positioned
     if height == floor:
         Positioned[0] = True
@@ -254,7 +249,7 @@ async def FloorChecker(height: float) -> bool:
     else:
         Positioned[0] = False
         return False
-async def HittedChecker(ax1: float, ay1: float, az1: float,
+def HittedChecker(ax1: float, ay1: float, az1: float,
                   ax2: float, ay2: float, az2: float,
                   mz: float) -> bool: 
     try:
@@ -268,7 +263,7 @@ async def HittedChecker(ax1: float, ay1: float, az1: float,
         return False
     return True
 
-async def BallPlaceChecker(bx: float, by: float) -> str: 
+def BallPlaceChecker(bx: float, by: float) -> str: 
     global Positioned
     if ((bx <= x)and(bx >= PointList[4][0])) and ((by <= PointList[4][1])and(by>=PointList[8][1])):
         Positioned[4] = True
@@ -305,14 +300,14 @@ async def BallPlaceChecker(bx: float, by: float) -> str:
     else:
         return None
 
-async def OutLinedChecker(x: float, y: float) -> bool: 
+def OutLinedChecker(x: float, y: float) -> bool: 
     if BallPlaceChecker(x,y) == None:
         Positioned[3] = True
         return True
     Positioned[3] = False
     return False
 
-async def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool | None = ValueError) -> any:
+def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool | None = ValueError) -> any:
     def Local_CheckSequence(start, length) -> bool:
         return all(li[start + k][0] < li[start + k + 1][0] for k in range(length))
 
@@ -343,7 +338,7 @@ async def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool | None = Val
         else:
             raise Exception()
     except IndexError:
-        RootCheckerRecursion(li, i, p+1, Flag)
+        return RootCheckerRecursion(li, i, p+1, Flag)
 
 
 async def scan():
@@ -355,20 +350,20 @@ async def scan():
         print(device)
         devicelist.append(device.address[:18])
         
-async def sqrt(x: float) -> float:
+def sqrt(x: float) -> float:
     return x**0.5
 
-async def mod(x: float, y: float) -> float:
+def mod(x: float, y: float) -> float:
     return x%y
 
-async def average(x: list) -> float:
+def average(x: list) -> float:
     return sum(x)/len(x)
 
-async def S2D(scientific_str: any) -> any:
+def S2D(scientific_str: any) -> any:
     decimal_value = float(scientific_str)
     return format(decimal_value, 'f')
 
-async def RMS(l: list) -> float:
+def RMS(l: list) -> float:
     return sqrt(sum(average([x**2 for x in l])))
 
 
@@ -420,6 +415,11 @@ async def get_device():
                 break
     print(nano_device)
 asyncio.run(get_device())
+
+al = []
+gl = []
+ml = []
+
 async def getDefault():
     async with BleakClient(nano_device.address) as client:
         print("Connected: {client.is_connected}")
@@ -446,17 +446,21 @@ async def getDefault():
         await client.stop_notify(GYRO_CHARACTERISTIC_UUID)
         await client.stop_notify(MAG_CHARACTERISTIC_UUID)
 asyncio.run(getDefault())
-default = ser.read(36)
-default_unpacked = struct.unpack('<9f',default)
-default_unpacked = list(default_unpacked)
+
+default_unpacked = al[0] + gl[0] + ml[0]
+
+# default = ser.read(36)
+# default_unpacked = struct.unpack('<9f',default)
+# default_unpacked = list(default_unpacked)
 default_unpacked[0] /= 16384
 default_unpacked[1] /= 16384
 default_unpacked[2] /= 16384
 default_unpacked[3] /= 131
 default_unpacked[4] /= 131
 default_unpacked[5] /= 131
-default_unpacked = tuple(default_unpacked)
-a = mod(((default_unpacked[3]+default_unpacked[4])/2), 360)
+
+# a = mod(((default_unpacked[3] + default_unpacked[4])/2), 360)
+a = mod(average([default_unpacked[3], default_unpacked[4]]))
 x, y, floor = default_unpacked[-3], default_unpacked[-2], default_unpacked[-1]
 print(a, x, y, floor, sep='\n')
 
@@ -473,9 +477,6 @@ while (len(PointList)!=16):
 Positioned = ["On Floor", "Hitted", "Thrower", "OutLined", "L In", "R In", "L Out", "R Out"]
 Positioned = [False]*len(Positioned)
 responseList = []
-al = [[default_unpacked[0],default_unpacked[1],default_unpacked[2]]]
-gl = [[default_unpacked[3],default_unpacked[4],default_unpacked[5]]]
-ml = [[x, y, floor]]
 t = 0
 tlist= [0]
 
@@ -567,17 +568,14 @@ async def main():
         responseList.append([accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ])
         try:
             if OutLinedChecker(magX,magY):
-                ser.write('ball outlined\n')
                 print('ball outlined')
             if FloorChecker(magZ) and HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
                 continue
             if HittedChecker(accelX,accelY,accelZ,responseList[-2][0],responseList[-2][1],responseList[-2][2],magZ):
                 state = RootCheckerRecursion([accelX,accelY,accelZ], 0, 0, True)
                 if state == True:
-                    ser.write('r player hitted by l player\n')
                     print('r player hitted by l player')
                 elif state == False:
-                    ser.write('l player hitted by r player\n')
                     print('l player hitted by r player')
                 else:
                     pass
