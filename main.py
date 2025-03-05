@@ -1,24 +1,26 @@
 # -*- coding : utf-8 -*-
 # pylint: disable=invalid_name,too-many-instance-attributes, too-many-arguments
-
 from __future__ import (absolute_import, division, unicode_literals)
-import os
-# import serial
-import copy
-import time
-import argparse
-import cv2 as cv
-import numpy as np
-import tensorflow as tf
-import tensorflow_hub as tfhub
-import kagglehub
-import ctypes
-# import struct
-# import subprocess
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import asyncio
-from bleak import BleakScanner, BleakClient
+try:
+
+    # import serial
+    import time
+    # import struct
+    # import subprocess
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+    import asyncio
+    from bleak import BleakScanner, BleakClient
+    import numpy as np
+    import cv2 as cv
+except ModuleNotFoundError:
+    import pip
+    pip.main(["install","matplotlib","bleak","numpy","opencv-python"])
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+    from bleak import BleakScanner, BleakClient
+    import numpy as np
+    import cv2 as cv
 
 SERVICE_UUID = "f5d1f9c8-c2dd-4632-a9db-9568a01847ab"
 ACCEL_CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc92"
@@ -65,106 +67,6 @@ class Position:
 
     def get_position(self):
         return self.position.tolist()
-
-class Multipose:
-    def __init__(self):
-        os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-    
-    def InitializingMedia(self):
-        MFStartup = ctypes.windll.mfplat.MFStartup
-        MFShutdown = ctypes.windll.mfplat.MFShutdown
-        MF_VERSION = 0x00020070
-        hr = MFStartup(MF_VERSION, 0)
-        if hr!= 0:
-            raise Exception()
-        return MFShutdown
-    
-    def Arguments(self):
-        self.parser = argparse.ArgumentParser()
-        self.parser.add_argument("--device", type=int, default=0)
-        self.parser.add_argument("--file", type=str, default=None)
-        self.parser.add_argument("--width", type=int, default=960)
-        self.parser.add_argument("--height", type=int, default=540)
-        self.parser.add_argument('--mirror', action='store_true', default=True)
-        self.parser.add_argument("--keypoint_score", type=float, default=0.4)
-        self.parser.add_argument("--bbox_score", type=float, default=0.3)
-        self.args = self.parser.parse_args()
-        return self.args
-
-    def Inference(self, model, input_size, image):
-        self.image_width, self.image_height = image.shape[1], image.shape[0]
-        self.input_image = cv.resize(image, dsize=(input_size, input_size))
-        self.input_image = cv.cvtColor(self.input_image, cv.COLOR_BGR2RGB)
-        self.input_image = self.input_image.reshape(-1, input_size, input_size, 3)
-        self.input_image = tf.cast(self.input_image, dtype=tf.int32)
-        self.outputs = model(self.input_image)
-        self.keypoints_with_scores = self.outputs['output_0'].numpy()
-        self.keypoints_with_scores = np.squeeze(self.keypoints_with_scores)
-        self.keypoints_list, self.scores_list = [], []
-        self.bbox_list = []
-        for i in self.keypoints_with_scores:
-            self.keypoints = []
-            self.scores = []
-            for index in range(17):
-                self.keypoint_x = int(self.image_width * i[(index * 3) + 1])
-                self.keypoint_y = int(self.image_height * i[(index * 3) + 0])
-                self.score = i[(index * 3) + 2]
-                self.keypoints.append([self.keypoint_x, self.keypoint_y])
-                self.scores.append(self.score)
-            self.bbox_ymin = int(self.image_height * i[51])
-            self.bbox_xmin = int(self.image_width * i[52])
-            self.bbox_ymax = int(self.image_height * i[53])
-            self.bbox_xmax = int(self.image_width * i[54])
-            self.bbox_score = i[55]
-            self.keypoints_list.append(self.keypoints)
-            self.scores_list.append(self.scores)
-            self.bbox_list.append(
-                [self.bbox_xmin, self.bbox_ymin, self.bbox_xmax, self.bbox_ymax, self.bbox_score])
-        return self.keypoints_list, self.scores_list, self.bbox_list
-
-    def main(self):
-        global args, cap_device, cap_width, cap_height, MFShutdown, mirror, keypoint_score_th, bbox_score_th, model, input_size
-        args = self.Arguments()
-        cap_device = args.device
-        cap_width = args.width
-        cap_height = args.height
-        MFShutdown = self.InitializingMedia()
-        if args.file is not None:
-            cap_device = args.file
-        mirror = args.mirror
-        keypoint_score_th = args.keypoint_score
-        bbox_score_th = args.bbox_score
-        model_url = kagglehub.model_download("google/movenet/tensorFlow2/multipose-lightning")
-        input_size = 256
-        module = tfhub.load(model_url)
-        model = module.signatures['serving_default']
-
-    def DebugDraw(self, image, elapsed_time, keypoint_score_th, keypoints_list, scores_list, bbox_score_th, bbox_list):
-        self.debug_image = copy.deepcopy(image)
-
-        for keypoints, scores in zip(keypoints_list, scores_list):
-            for idx1, idx2 in [(0,1),(0,2),(1,3),(2,4),(0,5),(0,6),(5,6),(5,7),(7,9),(6,8),(8,10),(11,12),(5,11),(11,13),(13,15),(6,12),(12,14),(14,16)]:
-                if scores[idx1] > keypoint_score_th and scores[idx2] > keypoint_score_th:
-                    self.point01 = keypoints[idx1]
-                    self.point02 = keypoints[idx2]
-                    cv.line(self.debug_image, tuple(self.point01), tuple(self.point02), (255, 255, 255), 4)
-                    cv.line(self.debug_image, tuple(self.point01), tuple(self.point02), (0, 0, 0), 2)
-
-        for keypoints, scores in zip(keypoints_list, scores_list):
-            for keypoint, score in zip(keypoints, scores):
-                if score > keypoint_score_th:
-                    cv.circle(self.debug_image, tuple(keypoint), 6, (255, 255, 255), -1)
-                    cv.circle(self.debug_image, tuple(keypoint), 3, (0, 0, 0), -1)
-
-        for self.bbox in bbox_list:
-            if self.bbox[4] > bbox_score_th:
-                cv.rectangle(self.debug_image, (self.bbox[0], self.bbox[1]), (self.bbox[2], self.bbox[3]), (255, 255, 255), 4)
-                cv.rectangle(self.debug_image, (self.bbox[0], self.bbox[1]), (self.bbox[2], self.bbox[3]), (0, 0, 0), 2)
-
-        cv.putText(self.debug_image, "Elapsed Time : " + '{:.1f}'.format(elapsed_time * 1000) + "ms", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 4, cv.LINE_AA)
-        cv.putText(self.debug_image, "Elapsed Time : " + '{:.1f}'.format(elapsed_time * 1000) + "ms", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2, cv.LINE_AA)
-
-        return self.debug_image
         
             
             
@@ -404,15 +306,24 @@ print('a')
 
 # a = float(input())
 # x, y, floor = map(float, input().split())
+
 async def get_device():
     global nano_device
-    devices = await BleakScanner.discover()
     nano_device = None
-    for device in devices:
-        for service in device.metadata['uuids']:
-            if SERVICE_UUID in service:
-                nano_device = device
+    temp=0
+    flag=False
+    while nano_device==None:
+        devices = await BleakScanner.discover()
+        for device in devices:
+            for service in device.metadata['uuids']:
+                if SERVICE_UUID in service:
+                    nano_device = device
+                    flag=True
+                    break
+            if flag:
                 break
+        temp+=1
+        print(temp)
     print(nano_device)
 asyncio.run(get_device())
 
@@ -480,44 +391,23 @@ responseList = []
 t = 0
 tlist= [0]
 
-pose = Multipose()
-pose.main()
+
 calcPose = Position(ml[-1],[0,0,0] ,0.001)
 animate = Animation(al = al, gl = gl, ml = ml)
 
-cap = cv.VideoCapture(0)
-cap.open(cap_device)
-cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
-cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
-cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
+
 temp = 0
 def devicenotfound():    
     if not nano_device:
         print("Device not found")
-        time.sleep(5000)
+        time.sleep(1000)
         devicenotfound()
         
 async def main():
     while True:
         st = time.time()
         
-        ret, frame = cap.read()
-        if not ret:
-            if temp > 3:
-                break
-            print(f't{temp}')
-            time.sleep(1)
-            temp += 1
-            continue
-        if mirror:
-            frame = cv.flip(frame, 1)  
-        debug_image = copy.deepcopy(frame)
-        keypoints_list, scores_list, bbox_list = pose.Inference(model, input_size, frame)
-
-        key = cv.waitKey(1)
-        if key == 27:  
-            break
-        cv.imshow('cam1', debug_image)
+        
 
         # response = ser.read(36)
         # unpacked = struct.unpack('<9f', response)
@@ -585,13 +475,5 @@ async def main():
         elapsed = await time.time()-st
         tlist.append(tlist[-1]+elapsed)
         t+=elapsed
-        debug_image = pose.DebugDraw(
-            debug_image,
-            elapsed,
-            keypoint_score_th,
-            keypoints_list,
-            scores_list,
-            bbox_score_th,
-            bbox_list
-        )
+        
 asyncio.run(main())
