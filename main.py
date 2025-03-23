@@ -1,26 +1,18 @@
 # -*- coding : utf-8 -*-
 # pylint: disable=invalid_name,too-many-instance-attributes, too-many-arguments
 from __future__ import (absolute_import, division, unicode_literals)
-try:
-
-    # import serial
-    import time
-    # import struct
-    # import subprocess
-    import matplotlib.pyplot as plt
-    import matplotlib.animation as animation
-    import asyncio
-    from bleak import BleakScanner, BleakClient
-    import numpy as np
-    import cv2 as cv
-except ModuleNotFoundError:
-    import pip
-    pip.main(["install","matplotlib","bleak","numpy","opencv-python"])
-    import matplotlib.pyplot as plt
-    import matplotlib.animation as animation
-    from bleak import BleakScanner, BleakClient
-    import numpy as np
-    import cv2 as cv
+# import serial
+import time
+import struct
+# import subprocess
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import asyncio
+from bleak import BleakScanner, BleakClient
+import numpy as np
+import cv2 as cv
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
 
 SERVICE_UUID = "f5d1f9c8-c2dd-4632-a9db-9568a01847ab"
 ACCEL_CHARACTERISTIC_UUID = "9c352853-d553-48b2-b192-df074b94bc92"
@@ -67,14 +59,10 @@ class Position:
 
     def get_position(self):
         return self.position.tolist()
-        
-            
-            
+    
 class Animation:
-    def __init__(self, **kwargs):
-        self.al = kwargs['al']
-        self.gl = kwargs['gl']
-        self.ml = kwargs['ml']
+    def __init__(self, al,gl,ml):
+        self.al=al;self.gl=gl;self.ml=ml
         
         self.flat = [[item for sublist in self.al for item in sublist],
                      [item for sublist in self.gl for item in sublist],
@@ -151,6 +139,7 @@ def FloorChecker(height: float) -> bool:
     else:
         Positioned[0] = False
         return False
+
 def HittedChecker(ax1: float, ay1: float, az1: float,
                   ax2: float, ay2: float, az2: float,
                   mz: float) -> bool: 
@@ -241,17 +230,7 @@ def RootCheckerRecursion(li: list, i: int, p: int, Flag: bool | None = ValueErro
             raise Exception()
     except IndexError:
         return RootCheckerRecursion(li, i, p+1, Flag)
-
-
-async def scan():
-    global devicelist
-    devicelist = []
-    
-    devices = await BleakScanner.discover()
-    for device in devices:
-        print(device)
-        devicelist.append(device.address[:18])
-        
+      
 def sqrt(x: float) -> float:
     return x**0.5
 
@@ -267,11 +246,6 @@ def S2D(scientific_str: any) -> any:
 
 def RMS(l: list) -> float:
     return sqrt(sum(average([x**2 for x in l])))
-
-
-asyncio.run(scan())
-
-print('a')
 
 # Port=int(input())
 #def inp():
@@ -303,9 +277,12 @@ print('a')
 #
 #inp()
 
-
 # a = float(input())
 # x, y, floor = map(float, input().split())
+
+al = {}
+gl = {}
+ml = {}
 
 async def get_device():
     global nano_device
@@ -325,40 +302,42 @@ async def get_device():
         temp+=1
         print(temp)
     print(nano_device)
-asyncio.run(get_device())
-
-al = []
-gl = []
-ml = []
 
 async def getDefault():
     async with BleakClient(nano_device.address) as client:
         print("Connected: {client.is_connected}")
-        def Callback1(sender, data):
+        def Callback1(_, data):
             global al
             ax, ay, az = data[:4], data[4:8], data[8:]
-            al.append([ax, ay, az])
+            al[time.perf_counter_ns()] = {"x":ax,"y":ay,"z":az}
+            print("Collecting datas.")
 
-        def Callback2(sender, data):
+        def Callback2(_, data):
             global gl
             gx, gy, gz = data[:4], data[4:8], data[8:]
-            gl.append([gx, gy, gz])
+            gl[time.perf_counter_ns()] = {"x":gx,"y":gy,"z":gz}
+            print("Collecting datas..")
 
-        def Callback3(sender, data):
+        def Callback3(_, data):
             global ml
             mx, my, mz = data[:4], data[4:8], data[8:]
-            ml.append([mx, my, mz])
+            ml[time.perf_counter_ns()] = {"x":mx,"y":my,"z":mz}
+            print("Collecting datas...")
 
         await client.start_notify(ACCEL_CHARACTERISTIC_UUID, Callback1)
         await client.start_notify(GYRO_CHARACTERISTIC_UUID, Callback2)
         await client.start_notify(MAG_CHARACTERISTIC_UUID, Callback3)
-
+        await asyncio.sleep(3)
         await client.stop_notify(ACCEL_CHARACTERISTIC_UUID)
         await client.stop_notify(GYRO_CHARACTERISTIC_UUID)
         await client.stop_notify(MAG_CHARACTERISTIC_UUID)
-asyncio.run(getDefault())
 
-default_unpacked = al[0] + gl[0] + ml[0]
+
+start = input("press any key to start collect data")
+asyncio.run(get_device())
+asyncio.run(getDefault())
+del start
+default_unpacked = list(al[max(al.keys())].values())+list(gl[max(gl.keys())].values())+list(ml[max(ml.keys())].values())
 
 # default = ser.read(36)
 # default_unpacked = struct.unpack('<9f',default)
@@ -371,12 +350,11 @@ default_unpacked[4] /= 131
 default_unpacked[5] /= 131
 
 # a = mod(((default_unpacked[3] + default_unpacked[4])/2), 360)
-a = mod(average([default_unpacked[3], default_unpacked[4]]))
+a = mod(average([default_unpacked[3], default_unpacked[4]]),360)
 x, y, floor = default_unpacked[-3], default_unpacked[-2], default_unpacked[-1]
 print(a, x, y, floor, sep='\n')
 
 i = 0
-
 
 dx = [-11,-4,4,11,-8,-4,4,8,-8,-4,4,8,-11,-4,4,11]
 dy = [7, 4, -4, -7]
@@ -384,6 +362,7 @@ PointList = []
 while (len(PointList)!=16):
     PointList.append([(a/180)*dx[i] if a!=0 else dx[i], (a/180)*dy[i//4] if a!=0 else dy[i//4]])
     i+=1
+print("Finished collecting default datas.")
 
 Positioned = ["On Floor", "Hitted", "Thrower", "OutLined", "L In", "R In", "L Out", "R Out"]
 Positioned = [False]*len(Positioned)
@@ -391,24 +370,51 @@ responseList = []
 t = 0
 tlist= [0]
 
-
 calcPose = Position(ml[-1],[0,0,0] ,0.001)
 animate = Animation(al = al, gl = gl, ml = ml)
-
 
 temp = 0
 def devicenotfound():    
     if not nano_device:
         print("Device not found")
-        time.sleep(1000)
-        devicenotfound()
+        exit(0)
         
 async def main():
+    data_queue = Queue()
+    executor = ThreadPoolExecutor()
+
+    def notification_handler(sender, data):
+        timestamp = time.perf_counter_ns()
+        data_queue.put((timestamp, sender, data))
+
+    def process_data():
+        while True:
+            if not data_queue.empty():
+                timestamp, sender, data = data_queue.get()
+                print(f"Processed {timestamp}: {sender} → {data.hex()}")
+
+    async def ble_task(address, char_uuid):
+        from bleak import BleakClient
+        async with BleakClient(address) as client:
+            await client.start_notify(char_uuid, notification_handler)
+            print("BLE Notification Listening Started.")
+
+            loop = asyncio.get_running_loop()
+            loop.run_in_executor(executor, process_data)
+
+            try:
+                while True:
+                    await asyncio.sleep(0.01)
+            except asyncio.CancelledError:
+                pass
+            finally:
+                await client.stop_notify(char_uuid)
+                print("BLE Notification Stopped.")
+
+    ble = asyncio.create_task(ble_task(nano_device, SERVICE_UUID))
+    
     while True:
         st = time.time()
-        
-        
-
         # response = ser.read(36)
         # unpacked = struct.unpack('<9f', response)
         # unpacked = list(unpacked)
@@ -428,31 +434,6 @@ async def main():
         # gl.append([gyroX, gyroY, gyroZ])
         # ml.append(calcPose.get_position())
         # print(responseList[-1])
-
-        async with BleakClient(nano_device.address) as client:
-            print("Connected: {client.is_connected}")
-            def Callback1(sender, data):
-                global al
-                ax, ay, az = data[:4], data[4:8], data[8:]
-                al.append([ax, ay, az])
-                
-            def Callback2(sender, data):
-                global gl
-                gx, gy, gz = data[:4], data[4:8], data[8:]
-                gl.append([gx, gy, gz])
-            
-            def Callback3(sender, data):
-                global ml
-                mx, my, mz = data[:4], data[4:8], data[8:]
-                ml.append([mx, my, mz])
-                
-            await client.start_notify(ACCEL_CHARACTERISTIC_UUID, Callback1)
-            await client.start_notify(GYRO_CHARACTERISTIC_UUID, Callback2)
-            await client.start_notify(MAG_CHARACTERISTIC_UUID, Callback3)
-            
-            await client.stop_notify(ACCEL_CHARACTERISTIC_UUID)
-            await client.stop_notify(GYRO_CHARACTERISTIC_UUID)
-            await client.stop_notify(MAG_CHARACTERISTIC_UUID)
             
         accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ = al[-1][0], al[-1][1], al[-1][2], gl[-1][0], gl[-1][1], gl[-1][2], ml[-1][0], ml[-1][1], ml[-1][2]
         responseList.append([accelX, accelY, accelZ, gyroX, gyroY, gyroZ, magX, magY, magZ])
@@ -475,5 +456,6 @@ async def main():
         elapsed = await time.time()-st
         tlist.append(tlist[-1]+elapsed)
         t+=elapsed
-        
+    await ble
+    executor.shutdown()
 asyncio.run(main())
