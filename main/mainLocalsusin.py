@@ -4,6 +4,7 @@ from threading import Thread
 from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Deque, Optional, Tuple, List
+import numpy as np
 
 from classes.Animation import Animation
 from classes.BallTracker3Dcopy import BallTracker3D as BallTracker3D
@@ -11,55 +12,34 @@ from classes.CameraCalibration import CameraCalibration
 from classes.UserInterface import UserInterface
 from classes.CameraPOCalc import CameraPOCalc
 
-
-
-
-
-camera_count: int = int(input("Camera Count(1 int):"))
+# =========================
+#  설정
+# =========================
+# cam_id -> device_id 매핑 (삼각측량은 최소 2대 필요)
+camera_count: int = int(input("Camera Count:"))
 camera_indices: Dict[int, int] = {key: key+1 for key in range(camera_count)}
 
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 360
-TARGET_FPS = 60
+TARGET_FPS = 60  # 메인 루프 처리 목표 fps
+
+# =========================
+#  유틸 · 데이터 구조
+# =========================
 @dataclass
 class CamStream:
     cap: Optional[cv2.VideoCapture]
-    frames: Deque  
+    frames: Deque  # latest-only queue
 
 def now() -> float:
-    
+    # 단조 증가 타임스탬프(고정밀)
     return time.perf_counter()
 
-def load_camera_configs():
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    camera_configs = []
-    if len(camera_cfgs.values()) == 7:
-        cfg = {
-            0: [6,6,(4,0,0),0]
-        }
-    for idx,i in camera_cfgs:
-        w,h,alpha_h,alpha_v = i
-        calculator = CameraPOCalc(w,h,alpha_h,alpha_v)
-        calculator.solve()
-    
+def now2() -> str:
+    return time.strftime("%X")
+
 def build_point_grid() -> List[Tuple[float, float]]:
-    
+    # 원래 로직의 pdx/pdy 기반 4x4 격자 생성
     pdx = [-11, -4, 4, 11, -8, -4, 4, 8, -8, -4, 4, 8, -11, -4, 4, 11]
     pdy = [7, 4, -4, -7]
     pts = []
@@ -67,34 +47,34 @@ def build_point_grid() -> List[Tuple[float, float]]:
     while len(pts) != 16:
         pts.append((pdx[i], pdy[i // 4]))
         i += 1
-    return pts  
+    return pts  # [(x, y), ...] length=16
 
 @dataclass
 class FieldZones:
-    
+    # 네 영역을 사전 계산된 사각형으로 정의: ((xmin, ymin), (xmax, ymax))
     li: Tuple[Tuple[float, float], Tuple[float, float]]
     ri: Tuple[Tuple[float, float], Tuple[float, float]]
     lo: Tuple[Tuple[float, float], Tuple[float, float]]
     ro: Tuple[Tuple[float, float], Tuple[float, float]]
 
 def make_field_zones(point_list: List[Tuple[float, float]]) -> FieldZones:
-    P = point_list  
-    
-    
+    P = point_list  # 가독성
+    # 기존 조건식을 해석하여 사각형 포함 테스트로 재정의
+    # 좌표계/인덱스는 원 코드의 의미를 유지하되, xmin<=x<=xmax & ymin<=y<=ymax 형태로 정규화
     def box(a, b):
         (x1, y1), (x2, y2) = a, b
         return ((min(x1, x2), min(y1, y2)), (max(x1, x2), max(y1, y2)))
 
-    
+    # li: x in [P[4].x, 0], y in [P[8].y, P[4].y]
     li = box((P[4][0], P[8][1]), (0.0, P[4][1]))
-    
+    # ri: x in [0, P[7].x], y in [P[11].y, P[7].y]
     ri = box((0.0, P[11][1]), (P[7][0], P[7][1]))
-    
+    # lo: 세 구역을 합친 영역 → 우선순위로 lo를 하나의 큰 바운딩 박스로 단순화(원래보다 약간 관대하지만 배타 우선순위로 처리)
     lo = box((min(P[2][0], P[7][0], P[10][0]),
               min(P[6][1], P[11][1], P[14][1])),
              (max(P[3][0], P[3][0], P[15][0]),
               max(P[2][1], P[7][1], P[10][1])))
-    
+    # ro: 세 구역을 합친 영역
     ro = box((min(P[0][0], P[0][0], P[12][0]),
               min(P[5][1], P[8][1], P[13][1])),
              (max(P[1][0], P[4][0], P[13][0]),
@@ -109,7 +89,7 @@ def in_box(x: float, y: float, box: Tuple[Tuple[float, float], Tuple[float, floa
 class BallPlaceChecker:
     def __init__(self, zones: FieldZones):
         self.z = zones
-        
+        # 상태 dict 사용
         self.flags = {
             "On Floor": False,
             "Hitted": False,
@@ -123,7 +103,7 @@ class BallPlaceChecker:
         }
 
     def check(self, bx: float, by: float) -> Optional[str]:
-        
+        # 배타적 우선순위: inside(L/R) → outside(L/R) 순으로 평가
         for k in self.flags.keys():
             self.flags[k] = False
 
@@ -141,9 +121,9 @@ class BallPlaceChecker:
             return "ro"
         return None
 
-
-
-
+# =========================
+#  카메라 스레드
+# =========================
 stop_flag = False
 streams: Dict[int, CamStream] = {}
 
@@ -152,8 +132,8 @@ def camera_thread(cam_id: int, device_id: int):
     ts = time.strftime('%X')
     print(f"[{ts}] [INFO] Starting camera thread cam:{cam_id} dev:{device_id}")
 
-    cap = cv2.VideoCapture(device_id, cv2.CAP_DSHOW)  
-    
+    cap = cv2.VideoCapture(device_id, cv2.CAP_DSHOW)  # 플랫폼에 맞게 변경 필요
+    # 저지연 설정(장치가 지원하는 경우에만 유효)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, TARGET_FPS)
@@ -175,45 +155,91 @@ def camera_thread(cam_id: int, device_id: int):
     cap.release()
     print(f"[{time.strftime('%X')}] [INFO] Camera thread {cam_id} stopped.")
 
+def get_camera_config(idx):
+    print(f"\n=== Camera {idx} Input ===")
+    W = int(input("Width Resolution (eg: 1920): "))
+    H = int(input("Height Resolution (eg: 1080): "))
+    alpha_h = np.radians(float(input("Horizontal FOV (deg): ")))
+    alpha_v = np.radians(float(input("Vertical FOV (deg): ")))
 
+    pmin, pmax = map(float, input("pitch bound (deg, eg: -90 0): ").split())
+    rmin, rmax = map(float, input("roll bound (deg, eg: 0 359): ").split())
 
+    a = float(input("Observation Area Length of Width: "))
+    b = float(input("Observation Area Length of Height: "))
 
+    O_vals = list(map(float, input("Area Center O (x y z): ").split()))
+    O = tuple(O_vals)
+
+    phi = np.radians(float(input("Area Rotation phi (deg): ")))
+
+    # use_plist = input("직접 P_list를 입력하시겠습니까? (y/n): ").lower()
+    # if use_plist == "y":
+    #     n = int(input("P_list 점 개수: "))
+    #     P_list = []
+    #     for i in range(n):
+    #         P_list.append(list(map(float, input(f"점 {i+1} (x y z): ").split())))
+    # else:
+    #     P_list = None
+    P_list = [[O[0]+a/2, O[1]+b/2, 0],
+              [O[0]-a/2, O[1]+b/2, 0],
+              [O[0]-a/2, O[1]-b/2, 0],
+              [O[0]+a/2, O[1]-b/2, 0]]
+    return {
+        "W": W, "H": H,
+        "alpha_h": alpha_h, "alpha_v": alpha_v,
+        "theta_p_bounds": (np.radians(pmin), np.radians(pmax)),
+        "theta_r_bounds": (np.radians(rmin), np.radians(rmax)),
+        "a": a, "b": b,
+        "O": O, "phi": phi,
+        "P_list": P_list
+    }
+
+def set_camera_config(camera_configs):
+    result = []
+    for idx,cfg in enumerate(camera_configs):
+        solver = CameraPOCalc(W=cfg["W"], H=cfg["H"],
+                              alpha_h=cfg["alpha_h"], alpha_v=cfg["alpha_v"],
+                              theta_p_bounds=cfg["theta_p_bounds"],
+                              theta_r_bounds=cfg["theta_r_bounds"])
+        temp = solver.solve(a=cfg["a"], b=cfg["b"],
+                           O=cfg["O"], phi=cfg["phi"],
+                           P_list=cfg["P_list"])
+        if temp["success"] == False:
+            print(f"\033[31m[{now2()}] [ERROR] Failed to calculate Camera{idx+1}. \033[0m")
+        
+
+# =========================
+#  메인
+# =========================
 def main():
-    global stop_flag,camera_cfgs
+    global stop_flag
 
-    camera_cfgs = {}
-    for i in range(camera_count):
-        w = int(input(f"Camera {i+1} Pixel Width:"))
-        h = int(input(f"Camera {i+1} Pixel Height:"))
-        alpha_h = int(input(f"Camera {i+1} Horizontal FOV:"))
-        alpha_v = int(input(f"Camera {i+1} Vertical FOV:"))
-        camera_cfgs[i] = [w,h,alpha_h,alpha_v]
-    
-    camera_config_input = []
-    
+    # 카메라 스레드 시작
     for cam_id, dev_id in camera_indices.items():
         t = Thread(target=camera_thread, args=(cam_id, dev_id), daemon=True)
         t.start()
 
-    
+    # 충분한 카메라가 준비될 때까지 대기(타임아웃 포함)
     t0 = now()
     while len(streams) < len(camera_indices) and now() - t0 < 3.0:
         time.sleep(0.01)
 
-    
+    # 삼각측량 최소 카메라 수 체크
     if len(camera_indices) < 2:
-        print("\033[31m[ERROR] Triangulation requires at least 2 cameras.\033[0m")
+        print(f"\033[31m[{now2()}] [ERROR] Triangulation requires at least 2 cameras.\033[0m")
         stop_flag = True
         return
 
-    
+    # VideoCapture 오픈 실패 카메라가 과반이면 종료
     if sum(1 for s in streams.values() if s.cap is None) >= len(camera_indices):
-        print("\033[31m[ERROR] All cameras failed to open.\033[0m")
+        print(f"\033[31m[{now2()}] [ERROR] All cameras failed to open.\033[0m")
         stop_flag = True
         return
 
-    
-    camera_configs = load_camera_configs()
+    # 캘리브레이션/트래커 초기화
+    camera_configs = [get_camera_config(i+1) for i in range(camera_count)]
+    new_camera_configs = set_camera_config(camera_configs)
     calibrate = CameraCalibration(camera_configs, 800, 800, FRAME_WIDTH, FRAME_HEIGHT)
     camera_params = calibrate.get_camera_params()
     calibrate.print_projection_matrices()
@@ -224,34 +250,34 @@ def main():
     gl: Dict[float, Tuple[float, float, float]] = {}
     pl: Dict[float, Tuple[float, float, float]] = {}
 
-    
+    # 필드 영역 준비
     point_list = build_point_grid()
     zones = make_field_zones(point_list)
     place_checker = BallPlaceChecker(zones)
 
-    
+    # 애니메이션/UI
     animate = Animation(vl, gl, pl)
     interface = UserInterface()
     animate.main()
     interface.update(place_checker.flags)
 
-    
+    # 창은 미리 생성
     for cam_id in camera_indices.keys():
         cv2.namedWindow(f"CAM{cam_id}", cv2.WINDOW_NORMAL)
 
-    
+    # 메인 루프
     frame_interval = 1.0 / TARGET_FPS
     try:
         while True:
             loop_start = now()
 
-            
+            # 프레임 스냅샷(레이스 회피: 참조만 복사)
             snapshot: Dict[int, any] = {}
             for cam_id, stream in streams.items():
                 if stream.frames:
                     snapshot[cam_id] = stream.frames[-1]
 
-            
+            # 포인트 수집
             pts_2d: List[Tuple[float, float]] = []
             cam_ids: List[int] = []
 
@@ -265,32 +291,32 @@ def main():
                 position_3d = tracker.triangulate_point(pts_2d, cam_ids)
                 tstamp = now()
                 state = tracker.update_state(position_3d, tstamp)
-                
+                # print(state)  # 필요시 유지
                 vl[tstamp] = state["velocity"]
                 gl[tstamp] = state["direction"]
                 pl[tstamp] = state["position"]
 
                 bx, by = state["position"][0], state["position"][1]
                 zone = place_checker.check(bx, by)
-                
+                # UI에 최신 플래그 반영
                 interface.update(place_checker.flags)
 
-            
+            # 디스플레이 업데이트
             for cam_id, frame in snapshot.items():  
                 cv2.imshow(f"CAM{cam_id}", frame)
 
-            
+            # 키 이벤트/루프 페이싱
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 stop_flag = True
                 break
 
-            
+            # 일정한 루프 주기 유지(불필요한 busy-wait 제거)
             elapsed = now() - loop_start
             if elapsed < frame_interval:
                 time.sleep(frame_interval - elapsed)
 
     finally:
         stop_flag = True
-
+        # 스레드는 데몬이므로 종료 시점에 자동 소멸되지만, 잠시 대기
         time.sleep(0.1)
         cv2.destroyAllWindows()
