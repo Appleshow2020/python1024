@@ -131,9 +131,9 @@ class CameraPOCalc:
                 "yaw": float(yaw), "pitch": float(pitch), "roll": float(roll),
                 "diagnostics": {"u": u.tolist(),"v": v.tolist(),"z": z.tolist(),
                                 "soft_J": best_J}}
-solver = CameraPOCalc(W=1920, H=1080,
-                          alpha_h=np.radians(60),
-                          alpha_v=np.radians(60),
-                          theta_p_bounds=(np.radians(-90),np.radians(0)))
-result = solver.solve(a=8.0, b=8.0, O=(-4,0,0), phi=0.0)
-print(result)
+# solver = CameraPOCalc(W=1920, H=1080,
+#                           alpha_h=np.radians(60),
+#                           alpha_v=np.radians(60),
+#                           theta_p_bounds=(np.radians(-90),np.radians(0)))
+# result = solver.solve(a=8.0, b=8.0, O=(-4,0,0), phi=0.0)
+# print(result)
