@@ -299,7 +299,8 @@ def main():
     camera_configs = []
     if use_preset:
         config = get_camera_config(1, use_preset=True)
-        camera_configs.append(config[0])
+        for i in range(len(config)):
+            camera_configs.append(config)
     else:
         camera_configs = [get_camera_config(i+1) for i in range(camera_count)]
         whattosave={}
