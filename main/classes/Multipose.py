@@ -2,9 +2,7 @@
 # pylint: disable=invalid_name,too-many-instance-attributes, too-many-arguments
 
 from __future__ import (absolute_import, division, unicode_literals)
-import sys, os
-import serial as s
-import math
+import os
 import copy
 import time
 import argparse
@@ -14,15 +12,15 @@ import tensorflow as tf
 import tensorflow_hub as tfhub
 import kagglehub
 import ctypes
-import sympy
+import logging
 
 cv.destroyAllWindows()
-
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 class Multipose:
-    
     def __init__(self):
         os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+        tf.get_logger().setLevel(logging.ERROR)
     
     def initialize_media_foundation(self):
         MFStartup = ctypes.windll.mfplat.MFStartup
@@ -101,7 +99,7 @@ class Multipose:
         while True:
             self.start_time = time.time()
             self.ret, self.frame = self.cap.read()
-            print(self.ret)
+            if self.ret != True: print(self.ret)
             if not self.ret:
                 if self.temp > 3:
                     break
@@ -133,29 +131,34 @@ class Multipose:
 
     def draw_debug(self, image, elapsed_time, keypoint_score_th, keypoints_list, scores_list, bbox_score_th, bbox_list):
         self.debug_image = copy.deepcopy(image)
-        for idx1, idx2 in [(0,1),(0,2),(1,3),(2,4),(0,5),(0,6),(5,6),(5,7),(7,9),(6,8),(8,10),(11,12),(5,11),(11,13),(13,15),(6,12),(12,14),(14,16)]:
-            if self.scores[idx1] > keypoint_score_th and self.scores[idx2] > keypoint_score_th:
-                self.point01 = self.keypoints[idx1]
-                self.point02 = self.keypoints[idx2]
-                cv.line(self.debug_image, self.point01, self.point02, (255, 255, 255), 4)
-                cv.line(self.debug_image, self.point01, self.point02, (0, 0, 0), 2)
-        for keypoint, score in zip(keypoints_list, scores_list):
-                if score > self.keypoint_score_th:
+        for keypoints, scores in zip(keypoints_list, scores_list):
+            for idx1, idx2 in [(0,1),(0,2),(1,3),(2,4),(0,5),(0,6),(5,6),(5,7),(7,9),(6,8),(8,10),(11,12),(5,11),(11,13),(13,15),(6,12),(12,14),(14,16)]:
+                if scores[idx1] > keypoint_score_th and scores[idx2] > keypoint_score_th:
+                    point01 = keypoints[idx1]
+                    point02 = keypoints[idx2]
+                    cv.line(self.debug_image, point01, point02, (255, 255, 255), 4)
+                    cv.line(self.debug_image, point01, point02, (0, 0, 0), 2)
+
+            for keypoint, score in zip(keypoints, scores):
+                if score > keypoint_score_th:
                     cv.circle(self.debug_image, keypoint, 6, (255, 255, 255), -1)
                     cv.circle(self.debug_image, keypoint, 3, (0, 0, 0), -1)
                     if KeypointBound(keypoint):
-                        cv.putText(self.debug_image, 'Keypoint out of bounds', keypoint, cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2, cv.LINE_AA)
+                        cv.putText(self.debug_image, 'Keypoint out of bounds', keypoint,
+                                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2, cv.LINE_AA)
+
         for bbox in bbox_list:
             if bbox[4] > bbox_score_th:
                 cv.rectangle(self.debug_image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 255, 255), 4)
                 cv.rectangle(self.debug_image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 0, 0), 2)
-        cv.putText(self.debug_image, "Elapsed Time : " + '{:.1f}'.format(elapsed_time * 1000) + "ms", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 4, cv.LINE_AA)
-        cv.putText(self.debug_image, "Elapsed Time : " + '{:.1f}'.format(elapsed_time * 1000) + "ms", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2, cv.LINE_AA)
+        cv.putText(self.debug_image, "Elapsed Time : {:.1f}ms".format(elapsed_time * 1000),
+                   (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 4, cv.LINE_AA)
+        cv.putText(self.debug_image, "Elapsed Time : {:.1f}ms".format(elapsed_time * 1000),
+                   (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2, cv.LINE_AA)
+
         return self.debug_image
-    
-    
+
+
 def KeypointBound(keypoint: int):
     x, y = keypoint
     return x<0
-mp = Multipose()
-mp.main()
