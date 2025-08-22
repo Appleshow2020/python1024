@@ -21,8 +21,16 @@ from classes.CameraPOCalc import CameraPOCalc
 # =========================
 # cam_id -> device_id 매핑 (삼각측량은 최소 2대 필요)
 camera_count: int = int(input("Camera Count:"))
-camera_indices: Dict[int, int] = {key: key+1 for key in range(camera_count)}
-
+camera_indices: Dict[int, int] = {}
+reali = 0
+for i in range(0,10):  # 0~4번 장치 탐색
+    cap = cv2.VideoCapture(i)
+    if cap.isOpened():
+        print(f"[{time.strftime('%X')}] [INFO] Camera found at index {i}")
+        cap.release()
+        camera_indices[reali] = i
+        reali+=1
+        
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 360
 TARGET_FPS = 60  # 메인 루프 처리 목표 fps
@@ -166,15 +174,6 @@ def ask(prompt, cast):
         except:
             print("retry.")
 
-
-
-def ask(prompt, cast):
-    while True:
-        try:
-            return cast(input(prompt))
-        except:
-            print("retry.")
-
 def list_presets():
     files = glob.glob("preset*.json")
     presets = {}
@@ -266,7 +265,9 @@ def set_camera_config(camera_configs):
         if temp["success"] == False:
             print(f"\033[31m[{now2()}] [ERROR] Failed to calculate Camera{idx+1}. \033[0m")
         else:
-            result.append({"id": f"cam{idx+1}", "position": list(temp["C"]), "rotation":[temp["pitch"], temp["yaw"], temp["roll"]]})
+            whattoappend={"id": f"cam{idx+1}", "position": list(temp["C"]), "rotation":[temp["pitch"], temp["yaw"], temp["roll"]]}
+            result.append(whattoappend)
+            print(whattoappend)
     return result
 
 # =========================
@@ -276,9 +277,9 @@ def main():
     global stop_flag
 
     # 카메라 스레드 시작
-    # for cam_id, dev_id in camera_indices.items():
-    #     t = Thread(target=camera_thread, args=(cam_id, dev_id), daemon=True)
-    #     t.start()
+    for cam_id, dev_id in camera_indices.items():
+        t = Thread(target=camera_thread, args=(cam_id, dev_id), daemon=True)
+        t.start()
 
     # 충분한 카메라가 준비될 때까지 대기(타임아웃 포함)
     t0 = now()
