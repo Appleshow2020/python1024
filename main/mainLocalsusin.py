@@ -5,7 +5,10 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Deque, Optional, Tuple, List
 import numpy as np
-import numpy as np
+import os
+import glob
+import json
+import re
 
 from classes.Animation import Animation
 from classes.BallTracker3Dcopy import BallTracker3D as BallTracker3D
@@ -163,21 +166,71 @@ def ask(prompt, cast):
         except:
             print("retry.")
 
-def get_camera_config(idx):
-    print(f"\n=== Camera {idx} Input ===")
 
+
+def ask(prompt, cast):
+    while True:
+        try:
+            return cast(input(prompt))
+        except:
+            print("retry.")
+
+def list_presets():
+    files = glob.glob("preset*.json")
+    presets = {}
+    for f in files:
+        m = re.match(r"preset(\d+)\.json", os.path.basename(f))
+        if m:
+            presets[int(m.group(1))] = f
+    return dict(sorted(presets.items()))
+
+def load_preset():
+    presets = list_presets()
+    if not presets:
+        print(f"\033[31m[{now2()}] [ERROR] No Preset to load\033[0m")
+        return None
+
+    print(f"[{now2()}] [INFO] List of preset:", ", ".join(map(str, presets.keys())))
+    while True:
+        try:
+            num = int(input("Preset to check: "))
+            if num not in presets:
+                print(f"\033[31m[{now2()}] [ERROR] No Preset number {num}")
+                continue
+            with open(presets[num], "r", encoding="utf-8") as fp:
+                data = json.load(fp)
+            print("Loaded preset detail", data)
+            yn = input("Use this preset? (y/n): ").lower()
+            if yn == "y":
+                return data
+        except Exception as e:
+            print("retry.", e)
+
+def save_preset(data, num=None):
+    if num is None:  # 번호 자동 할당
+        existing = list_presets().keys()
+        num = max(existing) + 1 if existing else 1
+    with open(f"preset{num}.json", "w", encoding="utf-8") as fp:
+        json.dump(data, fp, indent=2, ensure_ascii=False)
+    print(f"[INFO] Saved preset{num}.json.")
+    return num
+
+def get_camera_config(idx, use_preset=False):
+    if use_preset:
+        data = load_preset()
+        if data: 
+            return list(data.values())
+        print(f"\033[31m[{now2()}] [ERROR] Failed to load preset.\033[0m")
+
+    print(f"\n=== Camera {idx} Input ===")
     W = ask("Width Resolution (eg: 1920): ", int)
     H = ask("Height Resolution (eg: 1080): ", int)
-
     alpha_h = np.radians(ask("Horizontal FOV (deg): ", float))
     alpha_v = np.radians(ask("Vertical FOV (deg): ", float))
-
     pmin, pmax = ask("pitch bound (deg, eg: -90 0): ", lambda x: tuple(map(float, x.split())))
     rmin, rmax = ask("roll bound (deg, eg: 0 359): ", lambda x: tuple(map(float, x.split())))
-
     a = ask("Observation Area Length of Width: ", float)
     b = ask("Observation Area Length of Height: ", float)
-
     O = ask("Area Center O (x y z) 3 float: ", lambda x: tuple(map(float, x.split())))
     phi = np.radians(ask("Area Rotation phi (deg): ", float))
 
@@ -188,7 +241,7 @@ def get_camera_config(idx):
         [O[0]+a/2, O[1]-b/2, 0],
     ]
 
-    return {
+    data = {
         "W": W, "H": H,
         "alpha_h": alpha_h, "alpha_v": alpha_v,
         "theta_p_bounds": (np.radians(pmin), np.radians(pmax)),
@@ -198,6 +251,7 @@ def get_camera_config(idx):
         "P_list": P_list
     }
 
+    return data
 
 def set_camera_config(camera_configs):
     result = []
@@ -240,7 +294,17 @@ def main():
         print(f"\033[31m[{now2()}] [ERROR] All cameras failed to open.\033[0m")
 
     # 캘리브레이션/트래커 초기화
-    camera_configs = [get_camera_config(i+1) for i in range(camera_count)]
+    use_preset = input("Load Preset? (y/n): ").lower() == "y"
+    camera_configs = []
+    if use_preset:
+        config = get_camera_config(1, use_preset=True)
+        camera_configs.append(config[0])
+    else:
+        camera_configs = [get_camera_config(i+1) for i in range(camera_count)]
+        whattosave={}
+        for idx,i in enumerate(camera_configs):
+            whattosave[idx] = i
+        save_preset(whattosave)
     new_camera_configs = set_camera_config(camera_configs)
     calibrate = CameraCalibration(new_camera_configs, 800, 800, FRAME_WIDTH, FRAME_HEIGHT)
     camera_params = calibrate.get_camera_params()
@@ -267,10 +331,9 @@ def main():
     for cam_id in camera_indices.keys():
         cv2.namedWindow(f"CAM{cam_id}", cv2.WINDOW_NORMAL)
 
-    # 메인 루프
     frame_interval = 1.0 / TARGET_FPS
     try:
-        while not stop_flag:
+        while True:
             loop_start = now()
 
             # 프레임 스냅샷(레이스 회피: 참조만 복사)
@@ -322,5 +385,4 @@ def main():
         # 스레드는 데몬이므로 종료 시점에 자동 소멸되지만, 잠시 대기
         time.sleep(0.1)
         cv2.destroyAllWindows()
-
 main()
