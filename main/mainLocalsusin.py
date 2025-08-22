@@ -156,36 +156,38 @@ def camera_thread(cam_id: int, device_id: int):
     cap.release()
     print(f"[{time.strftime('%X')}] [INFO] Camera thread {cam_id} stopped.")
 
+def ask(prompt, cast):
+    while True:
+        try:
+            return cast(input(prompt))
+        except:
+            print("retry.")
+
 def get_camera_config(idx):
     print(f"\n=== Camera {idx} Input ===")
-    W = int(input("Width Resolution (eg: 1920): "))
-    H = int(input("Height Resolution (eg: 1080): "))
-    alpha_h = np.radians(float(input("Horizontal FOV (deg): ")))
-    alpha_v = np.radians(float(input("Vertical FOV (deg): ")))
 
-    pmin, pmax = map(float, input("pitch bound (deg, eg: -90 0): ").split())
-    rmin, rmax = map(float, input("roll bound (deg, eg: 0 359): ").split())
+    W = ask("Width Resolution (eg: 1920): ", int)
+    H = ask("Height Resolution (eg: 1080): ", int)
 
-    a = float(input("Observation Area Length of Width: "))
-    b = float(input("Observation Area Length of Height: "))
+    alpha_h = np.radians(ask("Horizontal FOV (deg): ", float))
+    alpha_v = np.radians(ask("Vertical FOV (deg): ", float))
 
-    O_vals = list(map(float, input("Area Center O (x y z) 3 float: ").split()))
-    O = tuple(O_vals)
+    pmin, pmax = ask("pitch bound (deg, eg: -90 0): ", lambda x: tuple(map(float, x.split())))
+    rmin, rmax = ask("roll bound (deg, eg: 0 359): ", lambda x: tuple(map(float, x.split())))
 
-    phi = np.radians(float(input("Area Rotation phi (deg): ")))
+    a = ask("Observation Area Length of Width: ", float)
+    b = ask("Observation Area Length of Height: ", float)
 
-    # use_plist = input("직접 P_list를 입력하시겠습니까? (y/n): ").lower()
-    # if use_plist == "y":
-    #     n = int(input("P_list 점 개수: "))
-    #     P_list = []
-    #     for i in range(n):
-    #         P_list.append(list(map(float, input(f"점 {i+1} (x y z): ").split())))
-    # else:
-    #     P_list = None
-    P_list = [[O[0]+a/2, O[1]+b/2, 0],
-              [O[0]-a/2, O[1]+b/2, 0],
-              [O[0]-a/2, O[1]-b/2, 0],
-              [O[0]+a/2, O[1]-b/2, 0]]
+    O = ask("Area Center O (x y z) 3 float: ", lambda x: tuple(map(float, x.split())))
+    phi = np.radians(ask("Area Rotation phi (deg): ", float))
+
+    P_list = [
+        [O[0]+a/2, O[1]+b/2, 0],
+        [O[0]-a/2, O[1]+b/2, 0],
+        [O[0]-a/2, O[1]-b/2, 0],
+        [O[0]+a/2, O[1]-b/2, 0],
+    ]
+
     return {
         "W": W, "H": H,
         "alpha_h": alpha_h, "alpha_v": alpha_v,
@@ -195,6 +197,7 @@ def get_camera_config(idx):
         "O": O, "phi": phi,
         "P_list": P_list
     }
+
 
 def set_camera_config(camera_configs):
     result = []
@@ -219,9 +222,9 @@ def main():
     global stop_flag
 
     # 카메라 스레드 시작
-    for cam_id, dev_id in camera_indices.items():
-        t = Thread(target=camera_thread, args=(cam_id, dev_id), daemon=True)
-        t.start()
+    # for cam_id, dev_id in camera_indices.items():
+    #     t = Thread(target=camera_thread, args=(cam_id, dev_id), daemon=True)
+    #     t.start()
 
     # 충분한 카메라가 준비될 때까지 대기(타임아웃 포함)
     t0 = now()
