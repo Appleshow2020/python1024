@@ -23,7 +23,7 @@ from classes.CameraPOCalc import CameraPOCalc
 camera_count: int = int(input("Camera Count:"))
 camera_indices: Dict[int, int] = {}
 reali = 0
-for i in range(0,10):  # 0~4번 장치 탐색
+for i in range(10):  # 0~10번 장치 탐색
     cap = cv2.VideoCapture(i)
     if cap.isOpened():
         print(f"[{time.strftime('%X')}] [INFO] Camera found at index {i}")
