@@ -187,40 +187,7 @@ interface.update(Positioned)
 pts_2d = []
 cam_ids = []
 
-while True:
-    image_paths = get_latest_image_paths()
-    pts_2d.clear()
-    cam_ids.clear()
-
-    for cam_id, filepath in image_paths:
-        pt = tracker.detect_ball(filepath)
-        if pt is not None:
-            pts_2d.append(pt)
-            cam_ids.append(int(cam_id))
-
-    if len(pts_2d) >= 2:
-        position_3d = tracker.triangulate_point(pts_2d, cam_ids)
-        timestamp = time.time()
-        state = tracker.update_state(position_3d, timestamp)
-        print(state)
-        vl[timestamp] = state["velocity"]
-        gl[timestamp] = state["direction"]
-        pl[timestamp] = state["position"]
-        
-        ballposition = BallPlaceChecker(state["position"][0], state["position"][1])
-    else:
-        print(f"\033[31m[{time.strftime('%X')}] [ERROR] Not enough camera data for triangulation.\033[0m")
-    time.sleep(1/30)
-
-    for cam_id, queue in frame_queues.items():
-        if queue:
-            frame = queue[-1]
-            window_name = f"CAM {urls[cam_id][7:-11]} ID{cam_id}"
-            cv2.imshow(window_name, frame)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        stop_flag = True
-        break
+wq  2
 
 # 종료 처리
 for t in threads:

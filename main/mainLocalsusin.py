@@ -255,6 +255,7 @@ def get_camera_config(idx, use_preset=False):
 def set_camera_config(camera_configs):
     result = []
     for idx,cfg in enumerate(camera_configs):
+        cfg = cfg[idx]
         solver = CameraPOCalc(W=cfg["W"], H=cfg["H"],
                               alpha_h=cfg["alpha_h"], alpha_v=cfg["alpha_v"],
                               theta_p_bounds=cfg["theta_p_bounds"],
@@ -267,7 +268,7 @@ def set_camera_config(camera_configs):
         else:
             whattoappend={"id": f"cam{idx+1}", "position": list(temp["C"]), "rotation":[temp["pitch"], temp["yaw"], temp["roll"]]}
             result.append(whattoappend)
-            print(whattoappend)
+    print(*result,sep='\n')
     return result
 
 # =========================
