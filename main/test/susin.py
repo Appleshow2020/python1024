@@ -187,8 +187,6 @@ interface.update(Positioned)
 pts_2d = []
 cam_ids = []
 
-wq  2
-
 # 종료 처리
 for t in threads:
     t.join()
