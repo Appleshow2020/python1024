@@ -22,15 +22,17 @@ from classes.CameraPOCalc import CameraPOCalc
 # cam_id -> device_id 매핑 (삼각측량은 최소 2대 필요)
 camera_count: int = int(input("Camera Count:"))
 camera_indices: Dict[int, int] = {}
-reali = 0
-for i in range(10):  # 0~10번 장치 탐색
-    cap = cv2.VideoCapture(i)
-    if cap.isOpened():
-        print(f"[{time.strftime('%X')}] [INFO] Camera found at index {i}")
-        cap.release()
-        camera_indices[reali] = i
-        reali+=1
-        
+camera_indices_search_flag = input("Need to search cameras? (t/f):")
+if camera_indices_search_flag.lower() == 't':
+    reali = 0
+    for i in range(10):  # 0~10번 장치 탐색
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            print(f"[{time.strftime('%X')}] [INFO] Camera found at index {i}")
+            cap.release()
+            camera_indices[reali] = i
+            reali+=1
+else: camera_indices = {0:0,1:1,2:2}
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 360
 TARGET_FPS = 60  # 메인 루프 처리 목표 fps

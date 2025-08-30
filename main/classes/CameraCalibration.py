@@ -11,6 +11,7 @@ class CameraCalibration:
                 "position": [x, y, z], # 미터
                 "rotation": [pitch, yaw, roll]  # 각도(도 단위)
             }
+        args: camera settings()
         """
         fx,fy,cx,cy = args
         self.camera_configs = camera_configs
