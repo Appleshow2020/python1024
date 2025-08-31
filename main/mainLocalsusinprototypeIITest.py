@@ -1,6 +1,6 @@
 import cv2
 import time
-from threading import Thread
+from threading import Thread, Event
 from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Deque, Optional, Tuple, List
@@ -9,6 +9,11 @@ import os
 import glob
 import json
 import re
+import queue
+import matplotlib
+matplotlib.use('TkAgg')  # GUI 백엔드 설정
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 from classes.Animation import Animation
 from classes.BallTracker3Dcopy import BallTracker3D as BallTracker3D
@@ -16,22 +21,206 @@ from classes.CameraCalibration import CameraCalibration
 from classes.UserInterface import UserInterface
 from classes.CameraPOCalc import CameraPOCalc
 
-# =========================
-#  설정 및 카메라 검색
-# =========================
+# 전역 설정
+FRAME_WIDTH = 640
+FRAME_HEIGHT = 360
+TARGET_FPS = 60
+
+@dataclass
+class CamStream:
+    cap: Optional[cv2.VideoCapture]
+    frames: Deque
+    last_detection: Optional[Tuple[float, float]] = None
+
+@dataclass
+class FieldZones:
+    li: Tuple[Tuple[float, float], Tuple[float, float]]
+    ri: Tuple[Tuple[float, float], Tuple[float, float]]
+    lo: Tuple[Tuple[float, float], Tuple[float, float]]
+    ro: Tuple[Tuple[float, float], Tuple[float, float]]
+
+class AnimationWrapper:
+    """Animation 클래스의 래퍼 - 메인 스레드에서 matplotlib 실행"""
+    def __init__(self, original_animation):
+        self.animation = original_animation
+        self.last_update = 0
+        self.data_queue = queue.Queue()
+        self.animation_thread = None
+        self.stop_event = Event()
+        self.ui_update_event = Event()
+        
+        # matplotlib 초기화를 메인 스레드에서 수행
+        self.fig = None
+        self.ax = None
+        self.init_matplotlib()
+        
+    def init_matplotlib(self):
+        """matplotlib 초기화 (메인 스레드에서 호출)"""
+        try:
+            self.fig, self.ax = plt.subplots(figsize=(10, 8))
+            self.ax.set_xlim(-15, 15)
+            self.ax.set_ylim(-10, 10)
+            self.ax.set_zlim(0, 20)
+            self.ax.set_title("3D Ball Tracking")
+            plt.ion()  # 인터랙티브 모드 활성화
+            print("[INFO] Matplotlib initialized in main thread")
+        except Exception as e:
+            print(f"[ERROR] Matplotlib initialization failed: {e}")
+            
+    def update_data(self, vl=None, gl=None, pl=None):
+        """데이터 업데이트 (스레드 안전)"""
+        current_time = now()
+        if current_time - self.last_update > 0.5:  # 0.5초마다 업데이트
+            self.last_update = current_time
+            try:
+                # 큐에 데이터 추가
+                data = {
+                    'vl': vl or {},
+                    'gl': gl or {},
+                    'pl': pl or {},
+                    'timestamp': current_time
+                }
+                if not self.data_queue.full():
+                    self.data_queue.put(data)
+                    self.ui_update_event.set()
+                print("[INFO] Animation data queued for update")
+                return True
+            except Exception as e:
+                print(f"[WARNING] Animation data update failed: {e}")
+        return False
+    
+    def process_updates(self):
+        """메인 스레드에서 호출할 업데이트 처리"""
+        if self.ui_update_event.is_set():
+            try:
+                while not self.data_queue.empty():
+                    data = self.data_queue.get_nowait()
+                    self._update_plot(data)
+                self.ui_update_event.clear()
+            except queue.Empty:
+                pass
+            except Exception as e:
+                print(f"[WARNING] Process updates failed: {e}")
+    
+    def _update_plot(self, data):
+        """플롯 업데이트 (메인 스레드에서만 호출)"""
+        if self.fig is None or self.ax is None:
+            return
+            
+        try:
+            self.ax.clear()
+            self.ax.set_xlim(-15, 15)
+            self.ax.set_ylim(-10, 10)
+            self.ax.set_title("3D Ball Tracking - Live")
+            
+            # 위치 데이터 플롯
+            pl = data.get('pl', {})
+            if pl:
+                positions = list(pl.values())
+                if positions:
+                    x_coords = [pos[0] for pos in positions]
+                    y_coords = [pos[1] for pos in positions]
+                    self.ax.scatter(x_coords, y_coords, c='red', s=50, alpha=0.7, label='Ball Position')
+                    
+                    # 궤적 그리기
+                    if len(positions) > 1:
+                        self.ax.plot(x_coords, y_coords, 'r-', alpha=0.5, linewidth=2)
+            
+            self.ax.legend()
+            self.ax.grid(True, alpha=0.3)
+            plt.draw()
+            plt.pause(0.001)  # 짧은 pause로 화면 업데이트
+            
+        except Exception as e:
+            print(f"[WARNING] Plot update failed: {e}")
+    
+    def main(self):
+        """메인 애니메이션 호출 (메인 스레드에서만)"""
+        try:
+            if hasattr(self.animation, 'main'):
+                self.animation.main()
+            else:
+                # 기본 애니메이션 처리
+                self.process_updates()
+        except Exception as e:
+            print(f"[WARNING] Animation main failed: {e}")
+    
+    def close(self):
+        """정리 함수"""
+        self.stop_event.set()
+        if self.fig is not None:
+            plt.close(self.fig)
+
+class UIWrapper:
+    """UserInterface 래퍼 - 더 안정적인 업데이트"""
+    def __init__(self, original_ui):
+        self.ui = original_ui
+        self.last_update = 0
+        self.last_flags = {}
+        
+    def update(self, flags):
+        """UI 업데이트 (변경사항이 있을 때만)"""
+        current_time = now()
+        
+        # 플래그가 변경되었거나 1초가 지났을 때만 업데이트
+        if (flags != self.last_flags) or (current_time - self.last_update > 1.0):
+            try:
+                if hasattr(self.ui, 'update'):
+                    self.ui.update(flags)
+                self.last_flags = flags.copy()
+                self.last_update = current_time
+                print(f"[INFO] UI updated: {flags}")
+                return True
+            except Exception as e:
+                print(f"[WARNING] UI update failed: {e}")
+        return False
+
+class BallPlaceChecker:
+    """볼 위치 체커"""
+    def __init__(self, zones: FieldZones):
+        self.z = zones
+        self.flags = {
+            "On Floor": False, "Hitted": False, "Thrower": False, "OutLined": False,
+            "L In": False, "R In": False, "L Out": False, "R Out": False, "Running": False,
+        }
+
+    def check(self, bx: float, by: float) -> Optional[str]:
+        """볼 위치 체크"""
+        for k in self.flags.keys():
+            self.flags[k] = False
+
+        if in_box(bx, by, self.z.li):
+            self.flags["L In"] = True
+            return "li"
+        if in_box(bx, by, self.z.ri):
+            self.flags["R In"] = True
+            return "ri"
+        if in_box(bx, by, self.z.lo):
+            self.flags["L Out"] = True
+            return "lo"
+        if in_box(bx, by, self.z.ro):
+            self.flags["R Out"] = True
+            return "ro"
+        return None
+
+def now() -> float:
+    return time.perf_counter()
+
+def now2() -> str:
+    return time.strftime("%X")
+
 def find_and_select_cameras():
-    """카메라 검색 및 선택 함수"""
     camera_count: int = int(input("Camera Count: "))
     available_cameras: Dict[int, int] = {}
     selected_cameras: Dict[int, int] = {}
     
-    print("\n=== 카메라 검색 중... ===")
+    print("\n=== Searching for the camera... ===")
     # 0~10번 장치 탐색
     for i in range(10):
         try:
             cap = cv2.VideoCapture(i)
             if cap.isOpened():
-                print(f"[{time.strftime('%X')}] [INFO] Camera found at index {i}")
+                print(f"[INFO] Camera found at index {i}")
                 cap.release()
                 available_cameras[len(available_cameras)] = i
             else:
@@ -91,18 +280,6 @@ def find_and_select_cameras():
     
     return selected_cameras
 
-# 전역 설정
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 360
-TARGET_FPS = 60
-
-@dataclass
-class CamStream:
-    cap: Optional[cv2.VideoCapture]
-    frames: Deque
-    last_detection: Optional[Tuple[float, float]] = None
-
-# 필드 영역 및 위치 체커 함수들
 def build_point_grid() -> List[Tuple[float, float]]:
     """4x4 격자 생성"""
     pdx = [-11, -4, 4, 11, -8, -4, 4, 8, -8, -4, 4, 8, -11, -4, 4, 11]
@@ -113,13 +290,6 @@ def build_point_grid() -> List[Tuple[float, float]]:
         pts.append((pdx[i], pdy[i // 4]))
         i += 1
     return pts
-
-@dataclass
-class FieldZones:
-    li: Tuple[Tuple[float, float], Tuple[float, float]]
-    ri: Tuple[Tuple[float, float], Tuple[float, float]]
-    lo: Tuple[Tuple[float, float], Tuple[float, float]]
-    ro: Tuple[Tuple[float, float], Tuple[float, float]]
 
 def make_field_zones(point_list: List[Tuple[float, float]]) -> FieldZones:
     """필드 영역 정의"""
@@ -142,43 +312,6 @@ def in_box(x: float, y: float, box: Tuple[Tuple[float, float], Tuple[float, floa
     (xmin, ymin), (xmax, ymax) = box
     return (xmin <= x <= xmax) and (ymin <= y <= ymax)
 
-class BallPlaceChecker:
-    """볼 위치 체커"""
-    def __init__(self, zones: FieldZones):
-        self.z = zones
-        self.flags = {
-            "On Floor": False, "Hitted": False, "Thrower": False, "OutLined": False,
-            "L In": False, "R In": False, "L Out": False, "R Out": False, "Running": False,
-        }
-
-    def check(self, bx: float, by: float) -> Optional[str]:
-        """볼 위치 체크"""
-        for k in self.flags.keys():
-            self.flags[k] = False
-
-        if in_box(bx, by, self.z.li):
-            self.flags["L In"] = True
-            return "li"
-        if in_box(bx, by, self.z.ri):
-            self.flags["R In"] = True
-            return "ri"
-        if in_box(bx, by, self.z.lo):
-            self.flags["L Out"] = True
-            return "lo"
-        if in_box(bx, by, self.z.ro):
-            self.flags["R Out"] = True
-            return "ro"
-        return None
-
-def now() -> float:
-    return time.perf_counter()
-
-def now2() -> str:
-    return time.strftime("%X")
-
-# =========================
-#  카메라 스레드
-# =========================
 stop_flag = False
 streams: Dict[int, CamStream] = {}
 
@@ -240,9 +373,6 @@ def camera_thread(cam_id: int, device_id: int):
             cap.release()
         print(f"[{now2()}] [INFO] Camera thread {cam_id} stopped.")
 
-# =========================
-#  볼 검출 디버깅 함수
-# =========================
 def debug_ball_detection(frame, cam_id):
     """볼 검출 과정을 시각화하여 디버깅"""
     if frame is None:
@@ -305,34 +435,6 @@ def debug_ball_detection(frame, cam_id):
         print(f"[ERROR] Debug detection failed for cam {cam_id}: {e}")
         return frame.copy(), False
 
-# =========================
-#  Animation 래퍼 클래스
-# =========================
-class AnimationWrapper:
-    """Animation 클래스의 래퍼"""
-    def __init__(self, original_animation):
-        self.animation = original_animation
-        self.last_update = 0
-        
-    def update_data(self):
-        """데이터 업데이트 (호환성 메서드)"""
-        current_time = now()
-        if current_time - self.last_update > 1.0:  # 1초마다 업데이트
-            self.last_update = current_time
-            print("[INFO] Animation data updated")
-            return True
-        return False
-    
-    def main(self):
-        """메인 애니메이션 호출"""
-        try:
-            self.animation.main()
-        except Exception as e:
-            print(f"[WARNING] Animation main failed: {e}")
-
-# =========================
-#  메인 함수
-# =========================
 def main():
     global stop_flag
 
@@ -392,19 +494,25 @@ def main():
     zones = make_field_zones(point_list)
     place_checker = BallPlaceChecker(zones)
     
-    # 애니메이션 및 UI 초기화
+    # 애니메이션 및 UI 초기화 (메인 스레드에서)
     animate = None
     interface = None
     try:
         original_animation = Animation(vl, gl, pl)
         animate = AnimationWrapper(original_animation)
-        interface = UserInterface()
         
-        interface.update(place_checker.flags)
-        print("[INFO] Animation and Interface initialized")
+        try:
+            original_ui = UserInterface()
+            interface = UIWrapper(original_ui)
+            interface.update(place_checker.flags)
+            print("[INFO] Animation and Interface initialized")
+        except Exception as e:
+            print(f"[WARNING] UI initialization failed: {e}")
+            interface = None
         
     except Exception as e:
-        print(f"\033[33m[WARNING] Failed to initialize Animation/UI: {e}\033[0m")
+        print(f"\033[33m[WARNING] Failed to initialize Animation: {e}\033[0m")
+        animate = None
 
     # 6. 창 생성
     print("창 생성 중...")
@@ -424,7 +532,7 @@ def main():
     loop_count = 0
     
     print("\n=== 메인 루프 시작 ===")
-    print("'q': 종료, 'd': 디버그 토글, 'a': 애니메이션 업데이트")
+    print("'q': 종료, 'd': 디버그 토글, 'a': 애니메이션 업데이트, 'p': 플롯 보기")
     
     debug_mode = True
     
@@ -513,6 +621,10 @@ def main():
                                 if loop_count % 100 == 0:  # 가끔만 로그
                                     print(f"[WARNING] UI update failed: {e}")
                         
+                        # 애니메이션 데이터 업데이트
+                        if animate is not None:
+                            animate.update_data(vl, gl, pl)
+                        
                         if triangulation_count % 10 == 0:  # 10번에 한 번만 로그
                             print(f"[SUCCESS] 삼각측량 #{triangulation_count}: {position_3d[:2]}")
                         
@@ -520,9 +632,9 @@ def main():
                     if loop_count % 50 == 0:  # 50번에 한 번만 로그
                         print(f"[ERROR] 삼각측량 실패: {e}")
 
-            # 애니메이션 업데이트
-            if animate is not None and loop_count % 60 == 0:  # 2초마다
-                animate.update_data()
+            # 메인 스레드에서 애니메이션 및 UI 업데이트 처리
+            if animate is not None:
+                animate.process_updates()
 
             # 키 입력 처리
             key = cv2.waitKey(1) & 0xFF
@@ -537,6 +649,13 @@ def main():
                     animate.main()
                 except Exception as e:
                     print(f"[WARNING] Manual animation failed: {e}")
+            elif key == ord('p') and animate is not None:
+                try:
+                    # 현재 데이터로 즉시 플롯 업데이트
+                    data = {'vl': vl, 'gl': gl, 'pl': pl, 'timestamp': now()}
+                    animate._update_plot(data)
+                except Exception as e:
+                    print(f"[WARNING] Manual plot update failed: {e}")
 
             # FPS 제한
             elapsed = now() - loop_start
@@ -553,6 +672,11 @@ def main():
         print("정리 중...")
         stop_flag = True
         time.sleep(0.3)
+        
+        # 애니메이션 정리
+        if animate is not None:
+            animate.close()
+        
         cv2.destroyAllWindows()
         
         print(f"\n=== 실행 통계 ===")
