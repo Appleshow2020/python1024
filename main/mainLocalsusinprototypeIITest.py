@@ -14,6 +14,7 @@ import matplotlib
 matplotlib.use('TkAgg')  # GUI 백엔드 설정
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from enum import Enum
 
 from classes.Animation import Animation
 from classes.BallTracker3Dcopy import BallTracker3D as BallTracker3D
@@ -63,9 +64,9 @@ class AnimationWrapper:
             self.ax.set_zlim(0, 20)
             self.ax.set_title("3D Ball Tracking")
             plt.ion()  # 인터랙티브 모드 활성화
-            print("[INFO] Matplotlib initialized in main thread")
+            printf("Matplotlib initialized in main thread", LT.info)
         except Exception as e:
-            print(f"[ERROR] Matplotlib initialization failed: {e}")
+            printf(f"Matplotlib initialization failed: {e}", LT.error)
             
     def update_data(self, vl=None, gl=None, pl=None):
         """데이터 업데이트 (스레드 안전)"""
@@ -83,10 +84,10 @@ class AnimationWrapper:
                 if not self.data_queue.full():
                     self.data_queue.put(data)
                     self.ui_update_event.set()
-                print("[INFO] Animation data queued for update")
+                printf("Animation data queued for update", LT.info)
                 return True
             except Exception as e:
-                print(f"[WARNING] Animation data update failed: {e}")
+                printf(f"Animation data update failed: {e}", LT.warning)
         return False
     
     def process_updates(self):
@@ -100,7 +101,7 @@ class AnimationWrapper:
             except queue.Empty:
                 pass
             except Exception as e:
-                print(f"[WARNING] Process updates failed: {e}")
+                printf(f"Process updates failed: {e}", LT.warning)
     
     def _update_plot(self, data):
         """플롯 업데이트 (메인 스레드에서만 호출)"""
@@ -132,7 +133,7 @@ class AnimationWrapper:
             plt.pause(0.001)  # 짧은 pause로 화면 업데이트
             
         except Exception as e:
-            print(f"[WARNING] Plot update failed: {e}")
+            printf(f"Plot update failed: {e}", LT.warning)
     
     def main(self):
         """메인 애니메이션 호출 (메인 스레드에서만)"""
@@ -143,7 +144,7 @@ class AnimationWrapper:
                 # 기본 애니메이션 처리
                 self.process_updates()
         except Exception as e:
-            print(f"[WARNING] Animation main failed: {e}")
+            printf(f"Animation main failed: {e}", LT.warning)
     
     def close(self):
         """정리 함수"""
@@ -169,10 +170,10 @@ class UIWrapper:
                     self.ui.update(flags)
                 self.last_flags = flags.copy()
                 self.last_update = current_time
-                print(f"[INFO] UI updated: {flags}")
+                printf(f"UI updated: {flags}", LT.info)
                 return True
             except Exception as e:
-                print(f"[WARNING] UI update failed: {e}")
+                printf(f"UI update failed: {e}", LT.warning)
         return False
 
 class BallPlaceChecker:
@@ -203,35 +204,57 @@ class BallPlaceChecker:
             return "ro"
         return None
 
+class Colors:
+    error = '\033[31m'
+    success = '\033[32m'
+    warning = '\033[33m'
+    info = '\033[34m'
+    debug = '\033[90m'
+    reset = '\033[0m'
+
+class LT(Enum):
+    error = 'error'
+    success = 'success'
+    warning = 'warning'
+    info = 'info'
+    debug = 'debug'
+
 def now() -> float:
     return time.perf_counter()
 
 def now2() -> str:
     return time.strftime("%X")
 
+def printf(text:str, ptype:LT|None = LT.debug):
+    """
+    type: error, warning, info, debug, success
+    """
+    color = getattr(Colors, ptype.value, Colors.reset)
+    print(f"{color}[{now2()}]", f"[{ptype.name}]", text, Colors.reset)
+
 def find_and_select_cameras():
     camera_count: int = int(input("Camera Count: "))
     available_cameras: Dict[int, int] = {}
     selected_cameras: Dict[int, int] = {}
     
-    print("\n=== Searching for the camera... ===")
+    printf("Searching for the camera...", LT.info)
     # 0~10번 장치 탐색
     for i in range(10):
         try:
             cap = cv2.VideoCapture(i)
             if cap.isOpened():
-                print(f"[INFO] Camera found at index {i}")
+                printf(f"Camera found at index {i}", LT.info)
                 cap.release()
                 available_cameras[len(available_cameras)] = i
             else:
                 cap.release()
         except Exception as e:
-            print(f"[WARNING] Error checking camera {i}: {e}")
+            printf(f"Error checking camera {i}: {e}", LT.warning)
     
-    print(f"총 {len(available_cameras)}대의 카메라를 발견했습니다.")
+    printf(f"Found {len(available_cameras)} camera in total.", LT.info)
     
     if len(available_cameras) == 0:
-        print("[ERROR] 사용 가능한 카메라를 찾을 수 없습니다!")
+        printf("No available cameras found!", LT.error)
         return {}
     
     # 카메라 선택
@@ -245,7 +268,7 @@ def find_and_select_cameras():
             if not cap.isOpened():
                 continue
                 
-            print(f"\n=== Camera {device_idx} 확인 ===")
+            printf(f"Checking Camera {device_idx}", LT.info)
             print("Press 't' if correct, 'f' if incorrect, 'q' to quit")
             
             frame_shown = False
@@ -258,17 +281,17 @@ def find_and_select_cameras():
                     
                     if key == ord('t'):
                         selected_cameras[device_key] = device_idx
-                        print(f"Camera {device_key} -> Device {device_idx} 선택됨")
+                        printf(f"Camera {device_key} -> Device {device_idx} selected.", LT.info)
                         device_key += 1
                         break
                     elif key == ord('f'):
-                        print("카메라를 건너뜁니다.")
+                        printf("Skipping camera.", LT.info)
                         break
                     elif key == ord('q'):
                         break
                 else:
                     if not frame_shown:
-                        print("Failed to grab frame from camera")
+                        printf("Failed to grab frame from camera", LT.warning)
                         break
                     time.sleep(0.01)
             
@@ -276,7 +299,7 @@ def find_and_select_cameras():
             cv2.destroyAllWindows()
             
         except Exception as e:
-            print(f"[ERROR] Camera {device_idx} 처리 중 오류: {e}")
+            printf(f"Error processing Camera {device_idx}: {e}", LT.error)
     
     return selected_cameras
 
@@ -317,7 +340,7 @@ streams: Dict[int, CamStream] = {}
 
 def camera_thread(cam_id: int, device_id: int):
     global stop_flag
-    print(f"[{now2()}] [INFO] Starting camera thread cam:{cam_id} dev:{device_id}")
+    printf(f"Starting camera thread cam:{cam_id} dev:{device_id}", LT.info)
 
     try:
         cap = cv2.VideoCapture(device_id)
@@ -329,10 +352,10 @@ def camera_thread(cam_id: int, device_id: int):
             cap.set(cv2.CAP_PROP_FPS, TARGET_FPS)
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         except Exception as e:
-            print(f"[WARNING] Camera {cam_id} 설정 실패: {e}")
+            printf(f"Camera {cam_id} configuration failed: {e}", LT.warning)
 
         if not cap.isOpened():
-            print(f"\033[31m[{now2()}] [ERROR] Failed to open cam:{cam_id} dev:{device_id}\033[0m")
+            printf(f"Failed to open cam:{cam_id} dev:{device_id}", LT.error)
             streams[cam_id] = CamStream(None, deque(maxlen=5))
             return
 
@@ -351,27 +374,27 @@ def camera_thread(cam_id: int, device_id: int):
                         consecutive_failures = 0
                         
                         if frame_count % 120 == 0:  # 2초마다 로그
-                            print(f"[DEBUG] Camera {cam_id}: {frame_count} frames captured")
+                            printf(f"Camera {cam_id}: {frame_count} frames captured", LT.debug)
                     else:
-                        print(f"[WARNING] Camera {cam_id}: Invalid frame size")
+                        printf(f"Camera {cam_id}: Invalid frame size", LT.warning)
                 else:
                     consecutive_failures += 1
                     if consecutive_failures > 10:
-                        print(f"\033[31m[{now2()}] [ERROR] Camera {cam_id}: Too many consecutive failures\033[0m")
+                        printf(f"Camera {cam_id}: Too many consecutive failures", LT.error)
                         break
                     time.sleep(0.01)
                     
             except Exception as e:
-                print(f"\033[31m[{now2()}] [ERROR] Camera {cam_id} 읽기 오류: {e}\033[0m")
+                printf(f"Camera {cam_id} read error: {e}", LT.error)
                 time.sleep(0.1)
 
     except Exception as e:
-        print(f"\033[31m[{now2()}] [ERROR] Camera thread {cam_id} 초기화 실패: {e}\033[0m")
+        printf(f"Camera thread {cam_id} initialization failed: {e}", LT.error)
         streams[cam_id] = CamStream(None, deque(maxlen=5))
     finally:
         if 'cap' in locals():
             cap.release()
-        print(f"[{now2()}] [INFO] Camera thread {cam_id} stopped.")
+        printf(f"Camera thread {cam_id} stopped.", LT.info)
 
 def debug_ball_detection(frame, cam_id):
     """볼 검출 과정을 시각화하여 디버깅"""
@@ -432,25 +455,25 @@ def debug_ball_detection(frame, cam_id):
         return result, has_detection
         
     except Exception as e:
-        print(f"[ERROR] Debug detection failed for cam {cam_id}: {e}")
+        printf(f"Debug detection failed for cam {cam_id}: {e}", LT.error)
         return frame.copy(), False
 
 def main():
     global stop_flag
 
-    print("=== 볼 트래킹 시스템 시작 ===")
+    printf("Ball Tracking System Starting", LT.info)
     
     # 1. 카메라 설정
     camera_indices = find_and_select_cameras()
     
     if len(camera_indices) == 0:
-        print(f"\033[31m[ERROR] 카메라를 찾을 수 없습니다.\033[0m")
+        printf("No cameras found.", LT.error)
         return
         
     if len(camera_indices) < 2:
-        print(f"\033[33m[WARNING] 삼각측량을 위해 최소 2대의 카메라가 권장됩니다. 현재: {len(camera_indices)}대\033[0m")
+        printf(f"At least 2 cameras are recommended for triangulation. Current: {len(camera_indices)}", LT.warning)
 
-    print(f"선택된 카메라: {camera_indices}")
+    printf(f"Selected cameras: {camera_indices}", LT.info)
 
     # 2. 카메라 스레드 시작
     for cam_id, dev_id in camera_indices.items():
@@ -458,18 +481,18 @@ def main():
         t.start()
 
     # 3. 카메라 준비 대기
-    print("카메라 초기화 중...")
+    printf("Initializing cameras...", LT.info)
     t0 = now()
     while len(streams) < len(camera_indices) and now() - t0 < 10.0:
         time.sleep(0.2)
         active_cams = sum(1 for s in streams.values() if s.cap is not None)
-        print(f"활성 카메라: {active_cams}/{len(camera_indices)}")
+        printf(f"Active cameras: {active_cams}/{len(camera_indices)}", LT.debug)
 
     active_cameras = sum(1 for s in streams.values() if s.cap is not None)
-    print(f"최종 활성 카메라: {active_cameras}대")
+    printf(f"Final active cameras: {active_cameras}", LT.info)
 
     # 4. 캘리브레이션
-    print("캘리브레이션 설정 중...")
+    printf("Setting up calibration...", LT.info)
     try:
         calibrate = CameraCalibration([
             {"id": "cam1", "position": [-0.627, -0.525, 0.2], "rotation": [-20, 30, 0]},
@@ -480,7 +503,7 @@ def main():
         camera_params = calibrate.get_camera_params()
         calibrate.print_projection_matrices()
     except Exception as e:
-        print(f"\033[31m[ERROR] 캘리브레이션 실패: {e}\033[0m")
+        printf(f"Calibration failed: {e}", LT.error)
         return
 
     # 5. 트래커 및 시각화 초기화
@@ -505,17 +528,17 @@ def main():
             original_ui = UserInterface()
             interface = UIWrapper(original_ui)
             interface.update(place_checker.flags)
-            print("[INFO] Animation and Interface initialized")
+            printf("Animation and Interface initialized", LT.info)
         except Exception as e:
-            print(f"[WARNING] UI initialization failed: {e}")
+            printf(f"UI initialization failed: {e}", LT.warning)
             interface = None
         
     except Exception as e:
-        print(f"\033[33m[WARNING] Failed to initialize Animation: {e}\033[0m")
+        printf(f"Failed to initialize Animation: {e}", LT.warning)
         animate = None
 
     # 6. 창 생성
-    print("창 생성 중...")
+    printf("Creating windows...", LT.info)
     try:
         for cam_id in camera_indices.keys():
             cv2.namedWindow(f"CAM{cam_id}", cv2.WINDOW_NORMAL)
@@ -523,7 +546,7 @@ def main():
             cv2.resizeWindow(f"CAM{cam_id}", 640, 360)
             cv2.resizeWindow(f"DEBUG{cam_id}", 640, 360)
     except Exception as e:
-        print(f"[WARNING] 창 생성 오류: {e}")
+        printf(f"Window creation error: {e}", LT.warning)
 
     # 메인 루프
     frame_interval = 1.0 / 30  # 30 FPS로 낮춤
@@ -531,8 +554,8 @@ def main():
     triangulation_count = 0
     loop_count = 0
     
-    print("\n=== 메인 루프 시작 ===")
-    print("'q': 종료, 'd': 디버그 토글, 'a': 애니메이션 업데이트, 'p': 플롯 보기")
+    printf("Main loop starting", LT.info)
+    printf("'q': quit, 'd': toggle debug, 'a': update animation, 'p': show plot", LT.info)
     
     debug_mode = True
     
@@ -548,7 +571,7 @@ def main():
                     snapshot[cam_id] = stream.frames[-1]
 
             if not snapshot:
-                print("[DEBUG] 사용 가능한 프레임이 없습니다")
+                printf("No available frames", LT.debug)
                 time.sleep(0.1)
                 continue
 
@@ -586,12 +609,12 @@ def main():
                     cv2.imshow(f"CAM{cam_id}", frame)
                     
                 except Exception as e:
-                    print(f"[ERROR] 프레임 처리 오류 cam{cam_id}: {e}")
+                    printf(f"Frame processing error cam{cam_id}: {e}", LT.error)
 
             # 삼각측량 시도
             if len(pts_2d) >= 2:
                 if loop_count % 30 == 0:  # 30번에 한 번만 로그
-                    print(f"[DEBUG] 삼각측량 시도: {len(pts_2d)}개 카메라")
+                    printf(f"Attempting triangulation with {len(pts_2d)} cameras", LT.debug)
                 
                 try:
                     position_3d = tracker.triangulate_point(pts_2d, cam_ids)
@@ -619,18 +642,18 @@ def main():
                                 interface.update(place_checker.flags)
                             except Exception as e:
                                 if loop_count % 100 == 0:  # 가끔만 로그
-                                    print(f"[WARNING] UI update failed: {e}")
+                                    printf(f"UI update failed: {e}", LT.warning)
                         
                         # 애니메이션 데이터 업데이트
                         if animate is not None:
                             animate.update_data(vl, gl, pl)
                         
                         if triangulation_count % 10 == 0:  # 10번에 한 번만 로그
-                            print(f"[SUCCESS] 삼각측량 #{triangulation_count}: {position_3d[:2]}")
+                            printf(f"Triangulation #{triangulation_count}: {position_3d[:2]}", LT.success)
                         
                 except Exception as e:
                     if loop_count % 50 == 0:  # 50번에 한 번만 로그
-                        print(f"[ERROR] 삼각측량 실패: {e}")
+                        printf(f"Triangulation failed: {e}", LT.error)
 
             # 메인 스레드에서 애니메이션 및 UI 업데이트 처리
             if animate is not None:
@@ -643,19 +666,19 @@ def main():
                 break
             elif key == ord('d'):
                 debug_mode = not debug_mode
-                print(f"Debug mode: {'ON' if debug_mode else 'OFF'}")
+                printf(f"Debug mode: {'ON' if debug_mode else 'OFF'}", LT.info)
             elif key == ord('a') and animate is not None:
                 try:
                     animate.main()
                 except Exception as e:
-                    print(f"[WARNING] Manual animation failed: {e}")
+                    printf(f"Manual animation failed: {e}", LT.warning)
             elif key == ord('p') and animate is not None:
                 try:
                     # 현재 데이터로 즉시 플롯 업데이트
                     data = {'vl': vl, 'gl': gl, 'pl': pl, 'timestamp': now()}
                     animate._update_plot(data)
                 except Exception as e:
-                    print(f"[WARNING] Manual plot update failed: {e}")
+                    printf(f"Manual plot update failed: {e}", LT.warning)
 
             # FPS 제한
             elapsed = now() - loop_start
@@ -663,13 +686,13 @@ def main():
                 time.sleep(frame_interval - elapsed)
 
     except KeyboardInterrupt:
-        print("\n키보드 인터럽트로 종료")
+        printf("Terminating due to keyboard interrupt", LT.info)
     except Exception as e:
-        print(f"\033[31m[ERROR] 메인 루프 오류: {e}\033[0m")
+        printf(f"Main loop error: {e}", LT.error)
         import traceback
         traceback.print_exc()
     finally:
-        print("정리 중...")
+        printf("Cleaning up...", LT.info)
         stop_flag = True
         time.sleep(0.3)
         
@@ -679,10 +702,10 @@ def main():
         
         cv2.destroyAllWindows()
         
-        print(f"\n=== 실행 통계 ===")
-        print(f"총 루프: {loop_count}")
-        print(f"총 검출: {detection_count}")
-        print(f"총 삼각측량: {triangulation_count}")
+        printf("=== Execution Statistics ===", LT.info)
+        printf(f"Total loops: {loop_count}", LT.info)
+        printf(f"Total detections: {detection_count}", LT.info)
+        printf(f"Total triangulations: {triangulation_count}", LT.info)
 
 if __name__ == "__main__":
     main()
