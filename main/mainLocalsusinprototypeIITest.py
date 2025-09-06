@@ -14,18 +14,23 @@ import matplotlib
 matplotlib.use('TkAgg')  # GUI 백엔드 설정
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from enum import Enum
 
 from classes.Animation import Animation
 from classes.BallTracker3Dcopy import BallTracker3D as BallTracker3D
 from classes.CameraCalibration import CameraCalibration
 from classes.UserInterface import UserInterface
 from classes.CameraPOCalc import CameraPOCalc
+from classes.printing import *
+
 
 # 전역 설정
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 360
 TARGET_FPS = 60
+
+CAM1POS = [-0.47,-0.52,0.19]; CAM1ROT = [-30,45,-10]
+CAM2POS = [0.05,0.05,0.62]; CAM2ROT = [-90,0,100]
+CAM3POS = [0.61,0.39,0.19]; CAM3ROT = [-20,-120,0]
 
 @dataclass
 class CamStream:
@@ -204,33 +209,8 @@ class BallPlaceChecker:
             return "ro"
         return None
 
-class Colors:
-    error = '\033[31m'
-    success = '\033[32m'
-    warning = '\033[33m'
-    info = '\033[34m'
-    debug = '\033[90m'
-    reset = '\033[0m'
-
-class LT(Enum):
-    error = 'error'
-    success = 'success'
-    warning = 'warning'
-    info = 'info'
-    debug = 'debug'
-
 def now() -> float:
     return time.perf_counter()
-
-def now2() -> str:
-    return time.strftime("%X")
-
-def printf(text:str, ptype:LT|None = LT.debug):
-    """
-    type: error, warning, info, debug, success
-    """
-    color = getattr(Colors, ptype.value, Colors.reset)
-    print(f"{color}[{now2()}]", f"[{ptype.name}]", text, Colors.reset)
 
 def find_and_select_cameras():
     camera_count: int = int(input("Camera Count: "))
@@ -258,9 +238,8 @@ def find_and_select_cameras():
         return {}
     
     # 카메라 선택
-    device_key = 0
     for _, device_idx in available_cameras.items():
-        if device_key >= camera_count:
+        if len(selected_cameras) >= camera_count:
             break
             
         try:
@@ -268,27 +247,57 @@ def find_and_select_cameras():
             if not cap.isOpened():
                 continue
                 
-            printf(f"Checking Camera {device_idx}", LT.info)
-            print("Press 't' if correct, 'f' if incorrect, 'q' to quit")
+            printf(f"Testing Camera Device {device_idx}", LT.info)
+            print("Options:")
+            print("  't' - Accept this camera")
+            print("  'p' - Pass (skip this camera)")
+            print("  '0-9' - Assign specific camera number (0-9)")
+            print("  'q' - Quit selection")
             
             frame_shown = False
             while True:
                 ret, frame = cap.read()
                 if ret:
                     frame_shown = True
-                    cv2.imshow(f"Camera {device_idx}", frame)
+                    # 화면에 현재 상태 표시
+                    info_text = f"Device {device_idx} | Selected: {len(selected_cameras)}/{camera_count}"
+                    cv2.putText(frame, info_text, (10, 30), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                    
+                    options_text = "t:Accept, p:Pass, 0-9:Set cam#, q:Quit"
+                    cv2.putText(frame, options_text, (10, frame.shape[0] - 20), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                    
+                    cv2.imshow(f"Camera Selection - Device {device_idx}", frame)
                     key = cv2.waitKey(1) & 0xFF
                     
                     if key == ord('t'):
-                        selected_cameras[device_key] = device_idx
-                        printf(f"Camera {device_key} -> Device {device_idx} selected.", LT.info)
-                        device_key += 1
+                        # 자동으로 다음 카메라 번호 할당
+                        cam_id = len(selected_cameras)
+                        selected_cameras[cam_id] = device_idx
+                        printf(f"Camera {cam_id} -> Device {device_idx} selected (auto-assigned).", LT.success)
                         break
-                    elif key == ord('f'):
-                        printf("Skipping camera.", LT.info)
+                        
+                    elif key == ord('p'):
+                        printf(f"Device {device_idx} passed (skipped).", LT.info)
                         break
+                        
+                    elif key >= ord('0') and key <= ord('9'):
+                        # 특정 카메라 번호 할당
+                        cam_id = int(chr(key))
+                        if cam_id in selected_cameras:
+                            printf(f"Camera {cam_id} is already assigned! Choose different number.", LT.warning)
+                            continue
+                        selected_cameras[cam_id] = device_idx
+                        printf(f"Camera {cam_id} -> Device {device_idx} selected (manual assignment).", LT.success)
+                        break
+                        
                     elif key == ord('q'):
-                        break
+                        printf("Selection terminated by user.", LT.info)
+                        cap.release()
+                        cv2.destroyAllWindows()
+                        return selected_cameras
+                        
                 else:
                     if not frame_shown:
                         printf("Failed to grab frame from camera", LT.warning)
@@ -299,7 +308,11 @@ def find_and_select_cameras():
             cv2.destroyAllWindows()
             
         except Exception as e:
-            printf(f"Error processing Camera {device_idx}: {e}", LT.error)
+            printf(f"Error processing Camera Device {device_idx}: {e}", LT.error)
+    
+    printf(f"Camera selection completed. Selected {len(selected_cameras)} cameras.", LT.info)
+    for cam_id, dev_id in selected_cameras.items():
+        printf(f"  Camera {cam_id} -> Device {dev_id}", LT.info)
     
     return selected_cameras
 
@@ -473,7 +486,7 @@ def main():
     if len(camera_indices) < 2:
         printf(f"At least 2 cameras are recommended for triangulation. Current: {len(camera_indices)}", LT.warning)
 
-    printf(f"Selected cameras: {camera_indices}", LT.info)
+    printf(f"Final selected cameras: {camera_indices}", LT.info)
 
     # 2. 카메라 스레드 시작
     for cam_id, dev_id in camera_indices.items():
@@ -495,15 +508,15 @@ def main():
     printf("Setting up calibration...", LT.info)
     try:
         calibrate = CameraCalibration([
-            {"id": "cam1", "position": [-0.627, -0.525, 0.2], "rotation": [-20, 30, 0]},
-            {"id": "cam2", "position": [0.56, 0.40, 0.20], "rotation": [-30, -130, 0]},
-            {"id": "cam3", "position": [0, 0, 51.7], "rotation": [-90, 0, 110]}
+            {"id": "cam1", "position": CAM1POS, "rotation":CAM1ROT},
+            {"id": "cam2", "position": CAM2POS, "rotation":CAM2ROT},
+            {"id": "cam3", "position": CAM3POS, "rotation":CAM3ROT}
         ], FRAME_WIDTH, FRAME_HEIGHT, 800, 800)
         
         camera_params = calibrate.get_camera_params()
         calibrate.print_projection_matrices()
     except Exception as e:
-        printf(f"Calibration failed: {e}", LT.error)
+        printf(f"aled: {e}", LT.error)
         return
 
     # 5. 트래커 및 시각화 초기화

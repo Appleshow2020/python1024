@@ -1,5 +1,6 @@
 import numpy as np
 import time
+from classes.printing import *
 
 class CameraCalibration:
     def __init__(self, camera_configs,*args):
@@ -16,7 +17,7 @@ class CameraCalibration:
         fx,fy,cx,cy = args
         self.camera_configs = camera_configs
         self.K = self._default_intrinsic_matrix(fx,fy,cx,cy)
-        print(f"[INFO {time.strftime('%X')}] Generating camera parameters...",end=" ")
+        printf(f"Generating camera parameters...", LT.info)
         self.camera_params = self._generate_camera_params()
         print("completed. (7 parameters generated.)")
     def _default_intrinsic_matrix(self,fx,fy,cx,cy):
@@ -75,6 +76,7 @@ class CameraCalibration:
         return self.camera_params
 
     def print_projection_matrices(self):
-        print(f"[INFO {time.strftime('%X')}]",end=" ")
+        printf("",ptype=LT.info,end=" ",useReset=False)
         for cam_id, data in self.camera_params.items():
-            print(f"{cam_id} Projection Matrix:\n{data['P']}\n")
+            print(f"{cam_id} Projection Matrix:\n{data['P']}")
+        print(Colors.reset)
