@@ -7,10 +7,10 @@ import asyncio
 import cv2 as cv
 from ultralytics import YOLO
 
-from python1024.classes.CameraCalibration import CameraCalibration
-from python1024.classes.Animation import Animation
-from python1024.classes.UserInterface import UserInterface
-from python1024.classes.BallTracker3D import BallTracker3D
+from classes.CameraCalibration import CameraCalibration
+from classes.Animation import Animation
+from classes.UserInterface import UserInterface
+from classes.BallTracker3D import BallTracker3D
 
 BALL_SIZE = 0
 
