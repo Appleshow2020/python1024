@@ -1,31 +1,5 @@
 import cv2
 import time
-import yaml
-import cProfile
-import pstats
-from threading import Thread, Event, Lock
-from collections import deque
-from dataclasses import dataclass, field
-from typing import Dict, Deque, Optional, Tuple, List, Set, Any
-import numpy as np
-import queue
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import os
-import logging
-import logging.handlers  # 이 import가 필요함
-from pathlib import Path
-
-from classes.Animation import Animation
-from classes.BallTracker3Dcopy import BallTracker3D as BallTracker3D
-from classes.CameraCalibration import CameraCalibration
-from classes.UserInterface import UserInterface
-from classes.CameraPOCalc import CameraPOCalc
-from classes.printing import *
-
-import cv2
-import time
 import cProfile
 import pstats
 from threading import Thread, Event, Lock
@@ -670,7 +644,7 @@ class OptimizedBallPlaceChecker:
             self.flags["R In"] = True
         elif result == "lo":
             self.flags["L Out"] = True
-        elif result == "ro":
+        elif result == "ro": 
             self.flags["R Out"] = True
     
     @staticmethod
