@@ -22,7 +22,7 @@
 | 카메라        | Raspberry Pi HQ Camera + 광각 6mm 렌즈 × 7대 |
 | 제어 보드     | Raspberry Pi 4 Model B (8GB) × 7대 |
 | 중앙 서버     | 고성능 데스크탑 |
-| 통신 방식     | Flask TCP 통신 |
+| 통신 방식     | Flask TCP 통신 / 유선 통신 |
 | 전원 공급     | PoE or 개별 전원 어댑터 |
 | 동기화 방식   | PTP(Time Protocol) or GPIO 신호 |
 
