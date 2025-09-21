@@ -1,0 +1,4 @@
+.venv
+.camera
+__pycache__
+*.pyc

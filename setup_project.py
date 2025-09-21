@@ -48,7 +48,7 @@ def create_project_structure():
                  pass # 빈 파일로 생성
             printf(f"파일 생성: {file}")
 
-    printf("\n프로젝트 구조 생성이 완료되었습니다!", LT.success)
+    printf("프로젝트 구조 생성이 완료되었습니다!", LT.success)
 
 if __name__ == "__main__":
     create_project_structure()
