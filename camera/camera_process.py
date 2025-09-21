@@ -8,22 +8,22 @@ from classes.printing import *
 
 def camera_process_main(config: dict, data_broker: DataBroker, perf_monitor: PerformanceMonitor):
     """
-    카메라에서 프레임을 지속적으로 캡처하여 데이터 브로커에 저장하는 프로세스.
-    :param config: 카메라 설정 (source, width, height, fps)
-    :param data_broker: 데이터 공유 객체
-    :param perf_monitor: 성능 측정 객체
+    Process that continuously captures frames from the camera and stores them in the data broker.
+    :param config: Camera settings (source, width, height, fps)
+    :param data_broker: Data sharing object
+    :param perf_monitor: Performance monitoring object
     """
-    printf(f"카메라 프로세스 시작 (PID: {os.getpid()})", LT.info)
+    printf(f"Camera process started (PID: {os.getpid()})", LT.info)
     cap = cv2.VideoCapture(config.get("source", 0))
     if not cap.isOpened():
-        printf(f"카메라 소스 '{config.get('source')}'를 열 수 없습니다.", LT.error)
+        printf(f"Cannot open camera source '{config.get('source')}'", LT.error)
         data_broker.set_data("camera_status", "Error")
         return
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.get("width", 1280))
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.get("height", 720))
     cap.set(cv2.CAP_PROP_FPS, config.get("fps", 30))
-    printf("카메라 설정 완료.",LT.success)
+    printf("Camera settings applied.", LT.success)
     data_broker.set_data("camera_status", "Running")
 
     frame_count = 0
@@ -31,22 +31,22 @@ def camera_process_main(config: dict, data_broker: DataBroker, perf_monitor: Per
         while True:
             ret, frame = cap.read()
             if not ret:
-                printf("프레임을 읽을 수 없습니다. 스트림이 끝났을 수 있습니다.", LT.error)
+                printf("Cannot read frame. The stream may have ended.", LT.error)
                 break
 
-            # 프레임을 데이터 브로커에 저장
+            # Store the frame in the data broker
             data_broker.set_data("latest_frame", frame)
             data_broker.set_data("frame_timestamp", time.time())
             
             frame_count += 1
-            perf_monitor.update_metric("camera_fps", 1) # FPS 계산을 위해 프레임 카운트
+            perf_monitor.update_metric("camera_fps", 1) # Count for FPS calculation
 
-            # CPU 부하를 줄이기 위해 약간의 대기 시간 추가 (필요 시)
+            # Add a short delay to reduce CPU load (if needed)
             # time.sleep(1 / config.get("fps", 30))
 
     except KeyboardInterrupt:
-        printf("카메라 프로세스 종료 요청 감지.", LT.debug)
+        printf("Camera process termination request detected.", LT.debug)
     finally:
         cap.release()
         data_broker.set_data("camera_status", "Stopped")
-        printf("카메라 리소스 해제 완료. 카메라 프로세스를 종료합니다.", LT.info)
+        printf("Camera resources released. Camera process terminated.", LT.info)

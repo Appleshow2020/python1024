@@ -2,3 +2,4 @@
 .camera
 __pycache__
 *.pyc
+.vscode

@@ -3,6 +3,7 @@ import os
 import time
 from core.data_broker import DataBroker
 from utils.performance_monitor import PerformanceMonitor
+from classes.printing import *
 
 def clear_console():
     """콘솔 화면을 지웁니다."""
