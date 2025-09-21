@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 영상 대시보드</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #333;
+        }
+        #video-container {
+            border: 2px solid #ccc;
+            background-color: #000;
+            width: 80%;
+            max-width: 960px;
+            margin-top: 20px;
+        }
+        img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>실시간 카메라 스트리밍</h1>
+    <div id="video-container">
+        <img src="{{ url_for('video_feed') }}" alt="Video Stream">
+    </div>
+</body>
+</html>
