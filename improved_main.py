@@ -35,7 +35,7 @@ def main():
         performance_monitor = PerformanceMonitor(manager)
 
         # 3. Initialize process manager
-        process_manager = ProcessManager()
+        process_manager = ProcessManager(use_custom_logging=True)
 
         # Register each process
         # target: function to execute, args: arguments to pass to the function
