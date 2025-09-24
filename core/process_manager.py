@@ -59,7 +59,7 @@ class ProcessManager:
         else:
             getattr(logger, level, logger.info)(message)
 
-    def add_process(self, name: str, target: Callable, args: Tuple = (), kwargs: Dict = None):
+    def add_process(self, name: str, target: Callable, args: Tuple = (), kwargs: Dict = None, daemon: bool = True):
         """
         Add a process to be managed.
         
@@ -80,7 +80,7 @@ class ProcessManager:
                 self._log(f"Warning: Dead process with name '{name}' found. Replacing it.", "warning")
 
         try:
-            process = Process(target=target, args=args, kwargs=kwargs, name=name)
+            process = Process(target=target, args=args, kwargs=kwargs, name=name,daemon=daemon)
             process.daemon = True  # Ensure process terminates with the main process
             self.processes[name] = process
             self._log(f"Process '{name}' has been registered.", "info")

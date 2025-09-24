@@ -56,17 +56,20 @@ def main():
     process_manager.add_process(
         name="Camera",
         target=camera_wrapper,
-        args=(config['camera'],)
+        args=(config['camera'],),
+        daemon = False
     )
     process_manager.add_process(
         name="Detection",
         target=detection_wrapper,
-        args=(config['detection'],)
+        args=(config['detection'],),
+        daemon = False
     )
     process_manager.add_process(
         name="Dashboard",
         target=dashboard_wrapper,
-        args=()
+        args=(),
+        daemon = False
     )
 
     # 3. Start all registered processes
