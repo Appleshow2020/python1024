@@ -120,7 +120,20 @@ python1024/
 │   ├── __init__.py
 │   └── default_config.py
 └── tests/
-    ├── __init__.py
-    ├── test_managers.py
-    ├── test_services.py
-    └── test_utils.py
+    ├── asserttest.py
+    ├── ball_tracker.log
+    ├── BallTrackingTest.py
+    ├── camera_configs.txt
+    ├── camera_configstest.txt
+    ├── camera_configstest2.py
+    ├── camera_vision.test.py
+    ├── config.yaml
+    ├── find.py
+    ├── logtest.py
+    ├── mainLocalsusin.py
+    ├── mainLocalsusinprototypeIITest.py
+    ├── preset1.json
+    ├── preset2.json
+    ├── projectionmatrixprintingtest.py
+    ├── susin.py
+    └── thisisnotmain.py
