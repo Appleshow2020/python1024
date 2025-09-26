@@ -77,7 +77,39 @@
 
 ```bash
 python1024/
-├── README.md
-├── Multipose.py
-├── UserInterface.py
-└── main.py
+├── main/
+│   └── app.py
+├── core/
+│   ├── __init__.py
+│   ├── managers/
+│   │   ├── __init__.py
+│   │   ├── camera_manager.py
+│   │   ├── detection_manager.py
+│   │   ├── tracking_manager.py
+│   │   ├── ui_manager.py
+│   │   └── performance_manager.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── camera_stream.py
+│   │   ├── field_zones.py
+│   │   └── detection_result.py
+│   └── services/
+│       ├── __init__.py
+│       ├── ball_detector.py
+│       ├── animation_service.py
+│       ├── place_checker.py
+│       └── system_monitor.py
+├── utils/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── camera_utils.py
+│   ├── geometry_utils.py
+│   └── logging_utils.py
+├── config/
+│   ├── __init__.py
+│   └── default_config.py
+└── tests/
+    ├── __init__.py
+    ├── test_managers.py
+    ├── test_services.py
+    └── test_utils.py
