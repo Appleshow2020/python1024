@@ -10,7 +10,11 @@ class LT(Enum):
 
 
 
-def printf(text:str, ptype:LT|None = LT.debug, end:str|None = '\n', useReset:bool|None = True):
+def printf(*text:object,
+           ptype:LT|None = LT.debug,
+           end:str|None = '\n',
+           sep:str|None=' ',
+           useReset:bool|None = True):
     """
     type: error, warning, info, debug, success
     """
@@ -28,6 +32,6 @@ def printf(text:str, ptype:LT|None = LT.debug, end:str|None = '\n', useReset:boo
     
     color = getattr(Colors, ptype.value, Colors.reset)
     if useReset:
-        print(f"{color}[{now2()}]", f"[{ptype.name}]", text, Colors.reset, end=end)
+        print(f"{color}[{now2()}]", f"[{ptype.name}]", text, Colors.reset, end=end, sep=sep)
     else:
-        print(f"{color}[{now2()}]", f"[{ptype.name}]", end=end)
+        print(f"{color}[{now2()}]", f"[{ptype.name}]", end=end, sep=sep)

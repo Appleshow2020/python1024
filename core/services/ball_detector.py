@@ -32,14 +32,14 @@ class BallDetectorService:
         
         # OpenCV DNN 백엔드 최적화
         if cv2.cuda.getCudaEnabledDeviceCount() > 0:
-            printf(f"CUDA devices available: {cv2.cuda.getCudaEnabledDeviceCount()}", LT.info)
+            printf(f"CUDA devices available: {cv2.cuda.getCudaEnabledDeviceCount()}", ptype=LT.info)
         
         # 프로파일링 설정
         self.enable_profiling = self._setup_profiling()
         
         if self.enable_profiling:
             self.profiler = cProfile.Profile()
-            printf("Ball detector profiling enabled", LT.info)
+            printf("Ball detector profiling enabled", ptype=LT.info)
     
     def _setup_profiling(self) -> bool:
         """프로파일링 설정"""
@@ -63,11 +63,11 @@ class BallDetectorService:
                     self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
                     self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
                     self.gpu_available = True
-                    printf("GPU acceleration enabled for ball detection", LT.info)
+                    printf("GPU acceleration enabled for ball detection", ptype=LT.info)
                 else:
-                    printf("CUDA not available, using CPU", LT.warning)
+                    printf("CUDA not available, using CPU", ptype=LT.warning)
             except Exception as e:
-                printf(f"Failed to setup GPU detection: {e}", LT.warning)
+                printf(f"Failed to setup GPU detection: {e}", ptype=LT.warning)
     
     def detect_with_dnn(self, frame: np.ndarray) -> Tuple[Optional[Tuple[int, int]], bool]:
         """DNN을 사용한 볼 검출"""
@@ -93,7 +93,7 @@ class BallDetectorService:
             
             return None, False
         except Exception as e:
-            printf(f"DNN detection failed: {e}", LT.error)
+            printf(f"DNN detection failed: {e}", ptype=LT.error)
             return None, False
     
     def detect_traditional(self, frame: np.ndarray, cam_id: int, frame_count: int) -> Tuple[Optional[Tuple[int, int]], bool]:
@@ -149,7 +149,7 @@ class BallDetectorService:
             return None, False
             
         except Exception as e:
-            printf(f"Traditional detection error cam{cam_id}: {e}", LT.error)
+            printf(f"Traditional detection error cam{cam_id}: {e}", ptype=LT.error)
             return None, False
     
     def detect(self, frame: np.ndarray, cam_id: int, frame_count: int) -> Tuple[Optional[Tuple[int, int]], bool]:
@@ -192,4 +192,4 @@ class BallDetectorService:
                 stats.sort_stats('cumulative')
                 stats.print_stats(file=f)
             
-            printf(f"Detection profile saved to {filename}", LT.info)
+            printf(f"Detection profile saved to {filename}", ptype=LT.info)

@@ -56,9 +56,9 @@ class AnimationService:
             self.ax.set_title("Advanced Ball Tracking")
             self.ax.grid(True, alpha=0.3)
             
-            printf("Advanced matplotlib initialized", LT.info)
+            printf("Advanced matplotlib initialized", ptype=LT.info)
         except Exception as e:
-            printf(f"Matplotlib init failed: {e}", LT.error)
+            printf(f"Matplotlib init failed: {e}", ptype=LT.error)
             
     def update_data(self, pl: Dict[float, Any]) -> bool:
         """최적화된 데이터 업데이트"""
@@ -85,7 +85,7 @@ class AnimationService:
             self.last_update = current_time
             return True
         except Exception as e:
-            printf(f"Animation update failed: {e}", LT.warning)
+            printf(f"Animation update failed: {e}", ptype=LT.warning)
         return False
     
     def process_updates(self):
@@ -108,7 +108,7 @@ class AnimationService:
         except queue.Empty:
             pass
         except Exception as e:
-            printf(f"Process updates failed: {e}", LT.warning)
+            printf(f"Process updates failed: {e}", ptype=LT.warning)
     
     def _update_plot_advanced(self, data: Dict[str, Any]):
         """고급 플롯 업데이트 - 블리팅 사용"""
@@ -150,7 +150,7 @@ class AnimationService:
             self.fig.canvas.flush_events()
             
         except Exception as e:
-            printf(f"Advanced plot update failed: {e}", LT.warning)
+            printf(f"Advanced plot update failed: {e}", ptype=LT.warning)
     
     def force_update(self, pl: Dict[float, Any]):
         """강제 업데이트 (즉시 실행)"""
@@ -162,7 +162,7 @@ class AnimationService:
             }
             self._update_plot_advanced(data)
         except Exception as e:
-            printf(f"Force update failed: {e}", LT.warning)
+            printf(f"Force update failed: {e}", ptype=LT.warning)
     
     def get_performance_stats(self) -> Dict[str, float]:
         """렌더링 성능 통계"""

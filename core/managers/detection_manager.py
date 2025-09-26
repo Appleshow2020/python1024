@@ -89,7 +89,7 @@ class DetectionManager:
                 self._display_frame(frame, cam_id)
                 
             except Exception as e:
-                printf(f"Detection error cam{cam_id}: {e}", LT.error)
+                printf(f"Detection error cam{cam_id}: {e}", ptype=LT.error)
                 self.detection_stats['failed_detections'] += 1
         
         self.detection_stats['total_detections'] += len(snapshot)
@@ -160,7 +160,7 @@ class DetectionManager:
             'detection_times': deque(maxlen=100)
         }
         self.frame_count = 0
-        printf("Detection statistics reset", LT.info)
+        printf("Detection statistics reset", ptype=LT.info)
     
     def save_detection_profile(self, filename: str = "detection_profile.prof"):
         """검출기 프로파일 저장"""

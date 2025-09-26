@@ -50,7 +50,7 @@ class LoggingManager:
                 )
                 self.logger.addHandler(file_handler)
             except Exception as e:
-                printf(f"File logging failed: {e}. Using console only.", LT.warning)
+                printf(f"File logging failed: {e}. Using console only.", ptype=LT.warning)
             
             # 콘솔 핸들러 추가
             console_handler = logging.StreamHandler()
@@ -59,20 +59,20 @@ class LoggingManager:
             )
             self.logger.addHandler(console_handler)
             
-            printf("Logging system initialized", LT.info)
+            printf("Logging system initialized", ptype=LT.info)
             self.logger.info("Ball Tracker logging started")
             
         except Exception as e:
-            printf(f"Logging setup failed: {e}. Using dummy logger.", LT.warning)
+            printf(f"Logging setup failed: {e}. Using dummy logger.", ptype=LT.warning)
             self.logger = self._create_dummy_logger()
     
     def _create_dummy_logger(self):
         """더미 로거 생성 (최후의 수단)"""
         class DummyLogger:
-            def info(self, msg): printf(f"INFO: {msg}", LT.info)
-            def warning(self, msg): printf(f"WARNING: {msg}", LT.warning)
-            def error(self, msg): printf(f"ERROR: {msg}", LT.error)
-            def debug(self, msg): printf(f"DEBUG: {msg}", LT.debug)
+            def info(self, msg): printf(f"INFO: {msg}", ptype=LT.info)
+            def warning(self, msg): printf(f"WARNING: {msg}", ptype=LT.warning)
+            def error(self, msg): printf(f"ERROR: {msg}", ptype=LT.error)
+            def debug(self, msg): printf(f"DEBUG: {msg}", ptype=LT.debug)
         
         return DummyLogger()
     

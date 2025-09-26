@@ -46,17 +46,17 @@ class UIManager:
         try:
             # UserInterface 초기화
             self.user_interface = UserInterface()
-            printf("UserInterface initialized", LT.info)
+            printf("UserInterface initialized", ptype=LT.info)
         except Exception as e:
-            printf(f"UserInterface initialization failed: {e}", LT.warning)
+            printf(f"UserInterface initialization failed: {e}", ptype=LT.warning)
             self.user_interface = None
         
         try:
             # AnimationService 초기화
             self.animation_service = AnimationService(self.config)
-            printf("AnimationService initialized", LT.info)
+            printf("AnimationService initialized", ptype=LT.info)
         except Exception as e:
-            printf(f"AnimationService initialization failed: {e}", LT.warning)
+            printf(f"AnimationService initialization failed: {e}", ptype=LT.warning)
             self.animation_service = None
     
     def update_referee_ui(self, zone_flags: Dict[str, bool]) -> bool:
@@ -90,7 +90,7 @@ class UIManager:
             return True
             
         except Exception as e:
-            printf(f"UI update error: {e}", LT.warning)
+            printf(f"UI update error: {e}", ptype=LT.warning)
             self.ui_stats['ui_errors'] += 1
             return False
     
@@ -113,7 +113,7 @@ class UIManager:
             return success
             
         except Exception as e:
-            printf(f"Animation update error: {e}", LT.warning)
+            printf(f"Animation update error: {e}", ptype=LT.warning)
             self.ui_stats['animation_errors'] += 1
             return False
     
@@ -126,7 +126,7 @@ class UIManager:
             self.animation_service.process_updates()
             return True
         except Exception as e:
-            printf(f"Animation process error: {e}", LT.warning)
+            printf(f"Animation process error: {e}", ptype=LT.warning)
             return False
     
     def force_animation_update(self, position_data: Dict[float, Any]):
@@ -134,9 +134,9 @@ class UIManager:
         if self.animation_service:
             try:
                 self.animation_service.force_update(position_data)
-                printf("Animation force updated", LT.debug)
+                printf("Animation force updated", ptype=LT.debug)
             except Exception as e:
-                printf(f"Force animation update error: {e}", LT.warning)
+                printf(f"Force animation update error: {e}", ptype=LT.warning)
     
     def get_ui_statistics(self) -> Dict[str, Any]:
         """UI 통계 반환"""
@@ -151,18 +151,18 @@ class UIManager:
     
     def cleanup(self):
         """UI 리소스 정리"""
-        printf("Cleaning up UI components...", LT.info)
+        printf("Cleaning up UI components...", ptype=LT.info)
         
         if self.animation_service:
             try:
                 self.animation_service.close()
-                printf("AnimationService closed", LT.info)
+                printf("AnimationService closed", ptype=LT.info)
             except Exception as e:
-                printf(f"AnimationService cleanup error: {e}", LT.warning)
+                printf(f"AnimationService cleanup error: {e}", ptype=LT.warning)
         
         # matplotlib 창들 정리
         try:
             import matplotlib.pyplot as plt
             plt.close('all')
         except Exception as e:
-            printf(f"Matplotlib cleanup error: {e}", LT.warning)
+            printf(f"Matplotlib cleanup error: {e}", ptype=LT.warning)

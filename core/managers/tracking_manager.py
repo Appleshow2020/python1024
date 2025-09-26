@@ -50,9 +50,9 @@ class TrackingManager:
             point_list = build_point_grid()
             zones = make_field_zones(point_list)
             self.place_checker = PlaceCheckerService(zones)
-            printf("Field zones initialized", LT.info)
+            printf("Field zones initialized", ptype=LT.info)
         except Exception as e:
-            printf(f"Failed to initialize field zones: {e}", LT.error)
+            printf(f"Failed to initialize field zones: {e}", ptype=LT.error)
     
     def initialize_calibration(self, selected_cameras: Dict[int, int]) -> bool:
         """카메라 캘리브레이션 초기화"""
@@ -67,7 +67,7 @@ class TrackingManager:
                     cam_configs.append(config)
             
             if not cam_configs:
-                printf("No camera configurations found", LT.error)
+                printf("No camera configurations found", ptype=LT.error)
                 return False
             
             # 캘리브레이션 수행
@@ -80,16 +80,16 @@ class TrackingManager:
             )
             
             self.camera_params = calibrate.get_camera_params()
-            printf("Camera calibration completed", LT.info)
+            printf("Camera calibration completed", ptype=LT.info)
             
             # BallTracker3D 초기화
             self.tracker = BallTracker3D(self.camera_params)
-            printf("3D ball tracker initialized", LT.info)
+            printf("3D ball tracker initialized", ptype=LT.info)
             
             return True
             
         except Exception as e:
-            printf(f"Calibration failed: {e}", LT.error)
+            printf(f"Calibration failed: {e}", ptype=LT.error)
             return False
     
     def process_detections(self, pts_2d: List[Tuple[int, int]], cam_ids: List[int]) -> Optional[Dict[str, Any]]:
@@ -104,7 +104,7 @@ class TrackingManager:
             상태 정보 딕셔너리 또는 None
         """
         if not self.tracker:
-            printf("Tracker not initialized", LT.error)
+            printf("Tracker not initialized", ptype=LT.error)
             return None
         
         if len(pts_2d) < 2:
@@ -164,7 +164,7 @@ class TrackingManager:
                 self.tracking_stats['failed_triangulations'] += 1
                 
         except Exception as e:
-            printf(f"Tracking error: {e}", LT.error)
+            printf(f"Tracking error: {e}", ptype=LT.error)
             self.tracking_stats['failed_triangulations'] += 1
         
         return None
@@ -228,4 +228,4 @@ class TrackingManager:
             self.tracker.prev_positions.clear()
             self.tracker.prev_times.clear()
         
-        printf("Tracking data reset", LT.info)
+        printf("Tracking data reset", ptype=LT.info)

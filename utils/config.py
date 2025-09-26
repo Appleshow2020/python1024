@@ -15,7 +15,7 @@ try:
     YAML_AVAILABLE = True
 except ImportError:
     YAML_AVAILABLE = False
-    printf("PyYAML not installed. Using JSON config instead.", LT.warning)
+    printf("PyYAML not installed. Using JSON config instead.", ptype=LT.warning)
 
 
 class ConfigManager:
@@ -111,12 +111,12 @@ class ConfigManager:
                         config = yaml.safe_load(f)
                     else:
                         config = json.load(f)
-                printf(f"Configuration loaded from {config_path.name}", LT.info)
+                printf(f"Configuration loaded from {config_path.name}", ptype=LT.info)
                 self._config = {**default_config, **config}
                 self._config_path = config_path
                 return
             except Exception as e:
-                printf(f"Failed to load config: {e}. Using defaults.", LT.warning)
+                printf(f"Failed to load config: {e}. Using defaults.", ptype=LT.warning)
         
         # 새 설정 파일 생성
         try:
@@ -125,9 +125,9 @@ class ConfigManager:
                     yaml.dump(default_config, f, default_flow_style=False)
                 else:
                     json.dump(default_config, f, indent=2)
-            printf(f"Default {config_path.name} created", LT.info)
+            printf(f"Default {config_path.name} created", ptype=LT.info)
         except Exception as e:
-            printf(f"Failed to create config file: {e}", LT.warning)
+            printf(f"Failed to create config file: {e}", ptype=LT.warning)
         
         self._config = default_config
         self._config_path = config_path
@@ -159,6 +159,6 @@ class ConfigManager:
                     yaml.dump(self._config, f, default_flow_style=False)
                 else:
                     json.dump(self._config, f, indent=2)
-            printf(f"Configuration saved to {self._config_path.name}", LT.info)
+            printf(f"Configuration saved to {self._config_path.name}", ptype=LT.info)
         except Exception as e:
-            printf(f"Failed to save config: {e}", LT.error)
+            printf(f"Failed to save config: {e}", ptype=LT.error)

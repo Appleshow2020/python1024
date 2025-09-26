@@ -38,7 +38,7 @@ class CameraManager:
         
     def find_available_cameras(self) -> Dict[int, Dict[str, Any]]:
         """사용 가능한 카메라들을 병렬로 검색"""
-        printf("Advanced camera search starting...", LT.info)
+        printf("Advanced camera search starting...", ptype=LT.info)
         
         available_cameras = {}
         
@@ -61,7 +61,7 @@ class CameraManager:
                         return info
                     cap.release()
             except Exception as e:
-                printf(f"Error checking camera {i}: {e}", LT.debug)
+                printf(f"Error checking camera {i}: {e}", ptype=LT.debug)
             return None
         
         # 병렬 탐색
@@ -72,12 +72,12 @@ class CameraManager:
                 if result:
                     available_cameras[result['index']] = result
                     printf(f"Camera {result['index']}: {result['width']}x{result['height']} @ "
-                          f"{result['fps']}fps ({result['backend']})", LT.info)
+                          f"{result['fps']}fps ({result['backend']})", ptype=LT.info)
         
         if len(available_cameras) == 0:
-            printf("No cameras found!", LT.error)
+            printf("No cameras found!", ptype=LT.error)
             
-        printf(f"Found {len(available_cameras)} cameras", LT.info)
+        printf(f"Found {len(available_cameras)} cameras", ptype=LT.info)
         return available_cameras
     
     def select_cameras(self, available_cameras: Dict[int, Dict[str, Any]], 
@@ -97,7 +97,7 @@ class CameraManager:
         for idx, (device_idx, info) in enumerate(sorted_cameras[:camera_count]):
             selected[idx] = device_idx
             printf(f"Auto-selected Camera {idx} -> Device {device_idx} "
-                  f"({info['width']}x{info['height']})", LT.info)
+                  f"({info['width']}x{info['height']})", ptype=LT.info)
         
         return selected
     
@@ -107,7 +107,7 @@ class CameraManager:
             try:
                 camera_count = int(input("Camera Count: "))
             except (ValueError, KeyboardInterrupt):
-                printf("Invalid camera count input", LT.error)
+                printf("Invalid camera count input", ptype=LT.error)
                 return False
         
         # 사용 가능한 카메라 검색
@@ -120,10 +120,10 @@ class CameraManager:
         self.selected_cameras = self.select_cameras(available_cameras, camera_count)
         
         if not self.selected_cameras:
-            printf("No cameras selected", LT.error)
+            printf("No cameras selected", ptype=LT.error)
             return False
         
-        printf(f"Selected cameras: {self.selected_cameras}", LT.info)
+        printf(f"Selected cameras: {self.selected_cameras}", ptype=LT.info)
         return True
     
     def _setup_camera(self, cap: cv2.VideoCapture) -> bool:
@@ -149,7 +149,7 @@ class CameraManager:
     
     def _camera_thread(self, cam_id: int, device_id: int):
         """개별 카메라 스레드"""
-        printf(f"Starting camera thread cam:{cam_id}", LT.info)
+        printf(f"Starting camera thread cam:{cam_id}", ptype=LT.info)
         
         try:
             cap = cv2.VideoCapture(device_id)
@@ -158,7 +158,7 @@ class CameraManager:
             self._setup_camera(cap)
             
             if not cap.isOpened():
-                printf(f"Failed to open cam:{cam_id}", LT.error)
+                printf(f"Failed to open cam:{cam_id}", ptype=LT.error)
                 self.streams[cam_id] = CamStream(None)
                 return
             
@@ -207,7 +207,7 @@ class CameraManager:
                     else:
                         self.streams[cam_id].consecutive_failures += 1
                         if self.streams[cam_id].consecutive_failures > 30:
-                            printf(f"Camera {cam_id}: Too many failures", LT.error)
+                            printf(f"Camera {cam_id}: Too many failures", ptype=LT.error)
                             break
                             
                     # 적응형 대기 시간
@@ -217,24 +217,24 @@ class CameraManager:
                         time.sleep(target_frame_time - actual_frame_time)
                         
                 except Exception as e:
-                    printf(f"Camera {cam_id} capture error: {e}", LT.error)
+                    printf(f"Camera {cam_id} capture error: {e}", ptype=LT.error)
                     time.sleep(0.1)
         
         except Exception as e:
-            printf(f"Camera thread {cam_id} init failed: {e}", LT.error)
+            printf(f"Camera thread {cam_id} init failed: {e}", ptype=LT.error)
             self.streams[cam_id] = CamStream(None)
         finally:
             if 'cap' in locals():
                 cap.release()
-            printf(f"Camera thread {cam_id} stopped", LT.info)
+            printf(f"Camera thread {cam_id} stopped", ptype=LT.info)
     
     def start_camera_threads(self) -> bool:
         """카메라 스레드들 시작"""
         if not self.selected_cameras:
-            printf("No cameras selected", LT.error)
+            printf("No cameras selected", ptype=LT.error)
             return False
         
-        printf("Starting camera threads...", LT.info)
+        printf("Starting camera threads...", ptype=LT.info)
         
         for cam_id, device_id in self.selected_cameras.items():
             thread = Thread(
@@ -246,14 +246,14 @@ class CameraManager:
             self.camera_threads.append(thread)
         
         # 카메라 준비 대기
-        printf("Waiting for cameras...", LT.info)
+        printf("Waiting for cameras...", ptype=LT.info)
         start_time = time.perf_counter()
         while (len(self.streams) < len(self.selected_cameras) and 
                time.perf_counter() - start_time < 10.0):
             time.sleep(0.1)
         
         active_cameras = sum(1 for s in self.streams.values() if s.cap is not None)
-        printf(f"Active cameras: {active_cameras}", LT.info)
+        printf(f"Active cameras: {active_cameras}", ptype=LT.info)
         
         return active_cameras > 0
     
@@ -277,7 +277,7 @@ class CameraManager:
     
     def stop_cameras(self):
         """모든 카메라 스레드 정지"""
-        printf("Stopping camera threads...", LT.info)
+        printf("Stopping camera threads...", ptype=LT.info)
         self.stop_flag_ref[0] = True
         
         # 스레드 종료 대기
@@ -291,4 +291,4 @@ class CameraManager:
                 stream.cap.release()
         
         self.streams.clear()
-        printf("All camera threads stopped", LT.info)
+        printf("All camera threads stopped", ptype=LT.info)

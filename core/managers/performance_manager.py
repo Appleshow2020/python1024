@@ -43,9 +43,9 @@ class PerformanceManager:
         if self.psutil_available:
             self.psutil = psutil
             self.process = psutil.Process()
-            printf("psutil available - full system monitoring enabled", LT.info)
+            printf("psutil available - full system monitoring enabled", ptype=LT.info)
         else:
-            printf("psutil not available - limited system monitoring", LT.warning)
+            printf("psutil not available - limited system monitoring", ptype=LT.warning)
     
     def _setup_profiling(self) -> bool:
         """프로파일링 설정"""
@@ -64,13 +64,13 @@ class PerformanceManager:
         if self.enable_profiling:
             self.main_profiler = cProfile.Profile()
             self.main_profiler.enable()
-            printf("Main profiling started", LT.info)
+            printf("Main profiling started", ptype=LT.info)
     
     def stop_profiling(self):
         """메인 프로파일링 종료"""
         if self.enable_profiling and self.main_profiler:
             self.main_profiler.disable()
-            printf("Main profiling stopped", LT.info)
+            printf("Main profiling stopped", ptype=LT.info)
     
     def update_frame_time(self, frame_time: float):
         """프레임 시간 업데이트"""
@@ -89,7 +89,7 @@ class PerformanceManager:
             self.cpu_usage.append(cpu_percent)
             self.memory_usage.append(memory_mb)
         except Exception as e:
-            printf(f"System stats update failed: {e}", LT.warning)
+            printf(f"System stats update failed: {e}", ptype=LT.warning)
     
     def get_performance_report(self) -> Dict[str, Any]:
         """종합 성능 리포트 생성"""
@@ -136,20 +136,20 @@ class PerformanceManager:
             
         report = self.get_performance_report()
         
-        printf("=== Performance Stats ===", LT.info)
-        printf(f"Uptime: {report['uptime']:.1f}s", LT.info)
-        printf(f"Total Frames: {report['total_frames']}", LT.info)
+        printf("=== Performance Stats ===", ptype=LT.info)
+        printf(f"Uptime: {report['uptime']:.1f}s", ptype=LT.info)
+        printf(f"Total Frames: {report['total_frames']}", ptype=LT.info)
         
         if 'avg_fps' in report:
-            printf(f"Average FPS: {report['avg_fps']:.1f}", LT.info)
+            printf(f"Average FPS: {report['avg_fps']:.1f}", ptype=LT.info)
             printf(f"Frame Time: avg={report['avg_frame_time']*1000:.1f}ms, "
-                  f"max={report['max_frame_time']*1000:.1f}ms", LT.info)
+                  f"max={report['max_frame_time']*1000:.1f}ms", ptype=LT.info)
         
         if 'avg_cpu_usage' in report:
             printf(f"CPU Usage: avg={report['avg_cpu_usage']:.1f}%, "
-                  f"max={report['max_cpu_usage']:.1f}%", LT.info)
+                  f"max={report['max_cpu_usage']:.1f}%", ptype=LT.info)
             printf(f"Memory: avg={report['avg_memory_mb']:.1f}MB, "
-                  f"max={report['max_memory_mb']:.1f}MB", LT.info)
+                  f"max={report['max_memory_mb']:.1f}MB", ptype=LT.info)
         
         self.last_stats_time = current_time
     
@@ -175,10 +175,10 @@ class PerformanceManager:
                 stats.sort_stats('cumulative')
                 stats.print_stats(file=f)
             
-            printf(f"Profiling results saved to {profile_file}", LT.info)
+            printf(f"Profiling results saved to {profile_file}", ptype=LT.info)
             
         except Exception as e:
-            printf(f"Failed to save profiling results: {e}", LT.error)
+            printf(f"Failed to save profiling results: {e}", ptype=LT.error)
     
     def save_performance_report(self):
         """성능 보고서를 파일로 저장"""
@@ -191,7 +191,7 @@ class PerformanceManager:
             with open(filename, 'w') as f:
                 json.dump(report, f, indent=2, default=str)
             
-            printf(f"Performance report saved to {filename}", LT.info)
+            printf(f"Performance report saved to {filename}", ptype=LT.info)
             
         except Exception as e:
-            printf(f"Failed to save performance report: {e}", LT.warning)
+            printf(f"Failed to save performance report: {e}", ptype=LT.warning)

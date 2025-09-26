@@ -30,7 +30,7 @@ try:
     YAML_AVAILABLE = True
 except ImportError:
     YAML_AVAILABLE = False
-    printf("PyYAML not installed. Using JSON config instead.", LT.warning)
+    printf("PyYAML not installed. Using JSON config instead.", ptype=LT.warning)
 
 # 설정 파일 로드
 def load_config():
@@ -114,10 +114,10 @@ def load_config():
                     config = yaml.safe_load(f)
                 else:
                     config = json.load(f)
-            printf(f"Configuration loaded from {config_path.name}", LT.info)
+            printf(f"Configuration loaded from {config_path.name}", ptype=LT.info)
             return {**default_config, **config}
         except Exception as e:
-            printf(f"Failed to load config: {e}. Using defaults.", LT.warning)
+            printf(f"Failed to load config: {e}. Using defaults.", ptype=LT.warning)
     
     # 새 설정 파일 생성
     try:
@@ -126,9 +126,9 @@ def load_config():
                 yaml.dump(default_config, f, default_flow_style=False)
             else:
                 json.dump(default_config, f, indent=2)
-        printf(f"Default {config_path.name} created", LT.info)
+        printf(f"Default {config_path.name} created", ptype=LT.info)
     except Exception as e:
-        printf(f"Failed to create config file: {e}", LT.warning)
+        printf(f"Failed to create config file: {e}", ptype=LT.warning)
     
     return default_config
 
@@ -156,7 +156,7 @@ class ProfiledBallDetector:
         
         # OpenCV DNN 백엔드 최적화
         if cv2.cuda.getCudaEnabledDeviceCount() > 0:
-            printf(f"CUDA devices available: {cv2.cuda.getCudaEnabledDeviceCount()}", LT.info)
+            printf(f"CUDA devices available: {cv2.cuda.getCudaEnabledDeviceCount()}", ptype=LT.info)
         
         # 프로파일링 설정 (더 쉬운 방법)
         # 방법 1: 환경변수 사용
@@ -176,7 +176,7 @@ class ProfiledBallDetector:
         
         if self.enable_profiling:
             self.profiler = cProfile.Profile()
-            printf("Profiling enabled", LT.info)
+            printf("Profiling enabled", ptype=LT.info)
     
     def _setup_gpu_detection(self):
         """GPU 가속 볼 검출 설정"""
@@ -188,11 +188,11 @@ class ProfiledBallDetector:
                     self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
                     self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
                     self.gpu_available = True
-                    printf("GPU acceleration enabled for ball detection", LT.info)
+                    printf("GPU acceleration enabled for ball detection", ptype=LT.info)
                 else:
-                    printf("CUDA not available, using CPU", LT.warning)
+                    printf("CUDA not available, using CPU", ptype=LT.warning)
             except Exception as e:
-                printf(f"Failed to setup GPU detection: {e}", LT.warning)
+                printf(f"Failed to setup GPU detection: {e}", ptype=LT.warning)
     
     def detect_with_dnn(self, frame):
         """DNN을 사용한 볼 검출"""
@@ -218,7 +218,7 @@ class ProfiledBallDetector:
             
             return None, False
         except Exception as e:
-            printf(f"DNN detection failed: {e}", LT.error)
+            printf(f"DNN detection failed: {e}", ptype=LT.error)
             return None, False
     
     def detect_traditional(self, frame, cam_id, frame_count):
@@ -283,7 +283,7 @@ class ProfiledBallDetector:
             return None, False
             
         except Exception as e:
-            printf(f"Traditional detection error cam{cam_id}: {e}", LT.error)
+            printf(f"Traditional detection error cam{cam_id}: {e}", ptype=LT.error)
             return None, False
     
     def detect(self, frame, cam_id, frame_count):
@@ -326,7 +326,7 @@ class ProfiledBallDetector:
                 stats.sort_stats('cumulative')
                 stats.print_stats(file=f)
             
-            printf(f"Profile saved to {filename}", LT.info)
+            printf(f"Profile saved to {filename}", ptype=LT.info)
 
 @dataclass
 class CamStream:
@@ -380,9 +380,9 @@ class AdvancedAnimationWrapper:
             self.ax.set_title("Advanced Ball Tracking")
             self.ax.grid(True, alpha=0.3)
             
-            printf("Advanced matplotlib initialized", LT.info)
+            printf("Advanced matplotlib initialized", ptype=LT.info)
         except Exception as e:
-            printf(f"Matplotlib init failed: {e}", LT.error)
+            printf(f"Matplotlib init failed: {e}", ptype=LT.error)
             
     def update_data(self, pl: Dict):
         """최적화된 데이터 업데이트"""
@@ -409,7 +409,7 @@ class AdvancedAnimationWrapper:
             self.last_update = current_time
             return True
         except Exception as e:
-            printf(f"Animation update failed: {e}", LT.warning)
+            printf(f"Animation update failed: {e}", ptype=LT.warning)
         return False
     
     def process_updates(self):
@@ -432,7 +432,7 @@ class AdvancedAnimationWrapper:
         except queue.Empty:
             pass
         except Exception as e:
-            printf(f"Process updates failed: {e}", LT.warning)
+            printf(f"Process updates failed: {e}", ptype=LT.warning)
     
     def _update_plot_advanced(self, data):
         """고급 플롯 업데이트 - 블리팅 사용"""
@@ -474,7 +474,7 @@ class AdvancedAnimationWrapper:
             self.fig.canvas.flush_events()
             
         except Exception as e:
-            printf(f"Advanced plot update failed: {e}", LT.warning)
+            printf(f"Advanced plot update failed: {e}", ptype=LT.warning)
     
     def get_performance_stats(self):
         """렌더링 성능 통계"""
@@ -511,7 +511,7 @@ class SystemMonitor:
             self.process = psutil.Process()
             self.psutil_available = True
         except ImportError:
-            printf("psutil not available - limited system monitoring", LT.warning)
+            printf("psutil not available - limited system monitoring", ptype=LT.warning)
     
     def update_frame_time(self, frame_time):
         """프레임 시간 업데이트"""
@@ -530,7 +530,7 @@ class SystemMonitor:
             self.cpu_usage.append(cpu_percent)
             self.memory_usage.append(memory_mb)
         except Exception as e:
-            printf(f"System stats update failed: {e}", LT.warning)
+            printf(f"System stats update failed: {e}", ptype=LT.warning)
     
     def get_performance_report(self):
         """성능 리포트 생성"""
@@ -571,17 +571,17 @@ class SystemMonitor:
             
         report = self.get_performance_report()
         
-        printf("=== Performance Stats ===", LT.info)
-        printf(f"Uptime: {report['uptime']:.1f}s", LT.info)
-        printf(f"Total Frames: {report['total_frames']}", LT.info)
+        printf("=== Performance Stats ===", ptype=LT.info)
+        printf(f"Uptime: {report['uptime']:.1f}s", ptype=LT.info)
+        printf(f"Total Frames: {report['total_frames']}", ptype=LT.info)
         
         if 'avg_fps' in report:
-            printf(f"Average FPS: {report['avg_fps']:.1f}", LT.info)
-            printf(f"Frame Time: avg={report['avg_frame_time']*1000:.1f}ms, max={report['max_frame_time']*1000:.1f}ms", LT.info)
+            printf(f"Average FPS: {report['avg_fps']:.1f}", ptype=LT.info)
+            printf(f"Frame Time: avg={report['avg_frame_time']*1000:.1f}ms, max={report['max_frame_time']*1000:.1f}ms", ptype=LT.info)
         
         if 'avg_cpu_usage' in report:
-            printf(f"CPU Usage: avg={report['avg_cpu_usage']:.1f}%, max={report['max_cpu_usage']:.1f}%", LT.info)
-            printf(f"Memory: avg={report['avg_memory_mb']:.1f}MB, max={report['max_memory_mb']:.1f}MB", LT.info)
+            printf(f"CPU Usage: avg={report['avg_cpu_usage']:.1f}%, max={report['max_cpu_usage']:.1f}%", ptype=LT.info)
+            printf(f"Memory: avg={report['avg_memory_mb']:.1f}MB, max={report['max_memory_mb']:.1f}MB", ptype=LT.info)
         
         self.last_stats_time = current_time
 
@@ -659,7 +659,7 @@ def find_cameras_advanced():
     available_cameras = {}
     selected_cameras = {}
     
-    printf("Advanced camera search starting...", LT.info)
+    printf("Advanced camera search starting...", ptype=LT.info)
     
     search_range = CONFIG['camera']['search_range']
     
@@ -694,13 +694,13 @@ def find_cameras_advanced():
             result = future.result()
             if result:
                 available_cameras[result['index']] = result
-                printf(f"Camera {result['index']}: {result['width']}x{result['height']} @ {result['fps']}fps ({result['backend']})", LT.info)
+                printf(f"Camera {result['index']}: {result['width']}x{result['height']} @ {result['fps']}fps ({result['backend']})", ptype=LT.info)
     
     if len(available_cameras) == 0:
-        printf("No cameras found!", LT.error)
+        printf("No cameras found!", ptype=LT.error)
         return {}
     
-    printf(f"Found {len(available_cameras)} cameras", LT.info)
+    printf(f"Found {len(available_cameras)} cameras", ptype=LT.info)
     
     # 자동 선택 (품질 기반)
     sorted_cameras = sorted(available_cameras.items(), 
@@ -709,13 +709,13 @@ def find_cameras_advanced():
     
     for idx, (device_idx, info) in enumerate(sorted_cameras[:camera_count]):
         selected_cameras[idx] = device_idx
-        printf(f"Auto-selected Camera {idx} -> Device {device_idx} ({info['width']}x{info['height']})", LT.info)
+        printf(f"Auto-selected Camera {idx} -> Device {device_idx} ({info['width']}x{info['height']})", ptype=LT.info)
     
     return selected_cameras
 
 def optimized_camera_thread_advanced(cam_id: int, device_id: int, stop_flag_ref, detector: ProfiledBallDetector):
     """고급 카메라 스레드"""
-    printf(f"Starting advanced camera thread cam:{cam_id}", LT.info)
+    printf(f"Starting advanced camera thread cam:{cam_id}", ptype=LT.info)
 
     try:
         cap = cv2.VideoCapture(device_id)
@@ -737,7 +737,7 @@ def optimized_camera_thread_advanced(cam_id: int, device_id: int, stop_flag_ref,
                 pass  # 일부 속성은 카메라가 지원하지 않을 수 있음
         
         if not cap.isOpened():
-            printf(f"Failed to open cam:{cam_id}", LT.error)
+            printf(f"Failed to open cam:{cam_id}", ptype=LT.error)
             streams[cam_id] = CamStream(None)
             return
 
@@ -780,11 +780,11 @@ def optimized_camera_thread_advanced(cam_id: int, device_id: int, stop_flag_ref,
                     
                     # 주기적 통계 업데이트
                     if frame_count % 300 == 0:
-                        printf(f"Camera {cam_id}: {frame_count} frames, avg FPS: {streams[cam_id].stats['avg_fps']:.1f}", LT.debug)
+                        printf(f"Camera {cam_id}: {frame_count} frames, avg FPS: {streams[cam_id].stats['avg_fps']:.1f}", ptype=LT.debug)
                 else:
                     streams[cam_id].consecutive_failures += 1
                     if streams[cam_id].consecutive_failures > 30:
-                        printf(f"Camera {cam_id}: Too many failures", LT.error)
+                        printf(f"Camera {cam_id}: Too many failures", ptype=LT.error)
                         break
                         
                 # 적응형 대기 시간
@@ -794,16 +794,16 @@ def optimized_camera_thread_advanced(cam_id: int, device_id: int, stop_flag_ref,
                     time.sleep(target_frame_time - actual_frame_time)
                     
             except Exception as e:
-                printf(f"Camera {cam_id} capture error: {e}", LT.error)
+                printf(f"Camera {cam_id} capture error: {e}", ptype=LT.error)
                 time.sleep(0.1)
 
     except Exception as e:
-        printf(f"Camera thread {cam_id} init failed: {e}", LT.error)
+        printf(f"Camera thread {cam_id} init failed: {e}", ptype=LT.error)
         streams[cam_id] = CamStream(None)
     finally:
         if 'cap' in locals():
             cap.release()
-        printf(f"Advanced camera thread {cam_id} stopped", LT.info)
+        printf(f"Advanced camera thread {cam_id} stopped", ptype=LT.info)
 
 def build_point_grid_optimized() -> List[Tuple[float, float]]:
     """최적화된 격자 생성"""
@@ -862,7 +862,7 @@ def setup_logging():
             )
             logger.addHandler(file_handler)
         except Exception as e:
-            printf(f"File logging failed: {e}. Using console only.", LT.warning)
+            printf(f"File logging failed: {e}. Using console only.", ptype=LT.warning)
         
         # 콘솔 핸들러
         console_handler = logging.StreamHandler()
@@ -871,19 +871,19 @@ def setup_logging():
         )
         logger.addHandler(console_handler)
         
-        printf("Logging system initialized", LT.info)
+        printf("Logging system initialized", ptype=LT.info)
         logger.info("Ball Tracker logging started")
         return logger
         
     except Exception as e:
-        printf(f"Logging setup failed: {e}. Using basic print.", LT.warning)
+        printf(f"Logging setup failed: {e}. Using basic print.", ptype=LT.warning)
         
         # 최후의 수단: 더미 로거
         class DummyLogger:
-            def info(self, msg): printf(f"INFO: {msg}", LT.info)
-            def warning(self, msg): printf(f"WARNING: {msg}", LT.warning)
-            def error(self, msg): printf(f"ERROR: {msg}", LT.error)
-            def debug(self, msg): printf(f"DEBUG: {msg}", LT.debug)
+            def info(self, msg): printf(f"INFO: {msg}", ptype=LT.info)
+            def warning(self, msg): printf(f"WARNING: {msg}", ptype=LT.warning)
+            def error(self, msg): printf(f"ERROR: {msg}", ptype=LT.error)
+            def debug(self, msg): printf(f"DEBUG: {msg}", ptype=LT.debug)
         
         return DummyLogger()
 
@@ -954,7 +954,7 @@ def create_performance_dashboard():
         return PerformanceDashboard()
         
     except ImportError:
-        printf("tkinter not available - dashboard disabled", LT.warning)
+        printf("tkinter not available - dashboard disabled", ptype=LT.warning)
         return None
 
 def main():
@@ -984,12 +984,12 @@ def main():
     # 방법 1: 환경변수 확인
     if os.getenv('PROFILE', 'False').lower() == 'true':
         enable_profiling = True
-        printf("Profiling enabled via environment variable", LT.info)
+        printf("Profiling enabled via environment variable", ptype=LT.info)
     
     # 방법 2: 설정 파일 확인
     elif CONFIG.get('profiling', {}).get('enabled', False):
         enable_profiling = True
-        printf("Profiling enabled via config file", LT.info)
+        printf("Profiling enabled via config file", ptype=LT.info)
     
     # 방법 3: 사용자에게 물어보기
     else:
@@ -997,7 +997,7 @@ def main():
             user_choice = input("Enable detailed profiling? (y/N): ").lower()
             if user_choice == 'y':
                 enable_profiling = True
-                printf("Profiling enabled by user choice", LT.info)
+                printf("Profiling enabled by user choice", ptype=LT.info)
         except KeyboardInterrupt:
             pass
     
@@ -1005,19 +1005,19 @@ def main():
     if enable_profiling:
         main_profiler = cProfile.Profile()
         main_profiler.enable()
-        printf("Main profiling started", LT.info)
+        printf("Main profiling started", ptype=LT.info)
     
     try:
-        printf("Advanced Ball Tracking System Starting", LT.info)
+        printf("Advanced Ball Tracking System Starting", ptype=LT.info)
         
         # 1. 고급 카메라 설정
         camera_indices = find_cameras_advanced()
         
         if len(camera_indices) == 0:
-            printf("No cameras found", LT.error)
+            printf("No cameras found", ptype=LT.error)
             return
             
-        printf(f"Selected cameras: {camera_indices}", LT.info)
+        printf(f"Selected cameras: {camera_indices}", ptype=LT.info)
 
         # 2. 볼 검출기 초기화
         detector = ProfiledBallDetector()
@@ -1031,17 +1031,17 @@ def main():
             threads.append(t)
 
         # 4. 카메라 준비 대기
-        printf("Waiting for cameras...", LT.info)
+        printf("Waiting for cameras...", ptype=LT.info)
         start_time = time.perf_counter()
         while len(streams) < len(camera_indices) and time.perf_counter() - start_time < 10.0:
             time.sleep(0.1)
             monitor.update_system_stats()
 
         active_cameras = sum(1 for s in streams.values() if s.cap is not None)
-        printf(f"Active cameras: {active_cameras}", LT.info)
+        printf(f"Active cameras: {active_cameras}", ptype=LT.info)
 
         if active_cameras == 0:
-            printf("No active cameras!", LT.error)
+            printf("No active cameras!", ptype=LT.error)
             return
 
         # 5. 고급 캘리브레이션
@@ -1055,9 +1055,9 @@ def main():
             
             calibrate = CameraCalibration(cam_configs, FRAME_WIDTH, FRAME_HEIGHT, 800, 800)
             camera_params = calibrate.get_camera_params()
-            printf("Advanced calibration completed", LT.info)
+            printf("Advanced calibration completed", ptype=LT.info)
         except Exception as e:
-            printf(f"Calibration failed: {e}", LT.error)
+            printf(f"Calibration failed: {e}", ptype=LT.error)
             return
 
         # 6. 고급 컴포넌트 초기화
@@ -1076,10 +1076,10 @@ def main():
         
         try:
             interface = UserInterface()
-            printf("Advanced interface initialized", LT.info)
+            printf("Advanced interface initialized", ptype=LT.info)
         except:
             interface = None
-            printf("Interface initialization failed - continuing without UI", LT.warning)
+            printf("Interface initialization failed - continuing without UI", ptype=LT.warning)
         
         # 7. 고급 메인 루프
         frame_interval = 1.0 / TARGET_FPS
@@ -1091,8 +1091,8 @@ def main():
             'failed_triangulations': 0
         }
         
-        printf("Starting advanced main loop", LT.info)
-        printf("Controls: 'q'=quit, 'd'=debug, 'p'=plot, 's'=stats, 'r'=reset", LT.info)
+        printf("Starting advanced main loop", ptype=LT.info)
+        printf("Controls: 'q'=quit, 'd'=debug, 'p'=plot, 's'=stats, 'r'=reset", ptype=LT.info)
         
         last_detection_log = 0
         
@@ -1160,7 +1160,7 @@ def main():
                     
                 except Exception as e:
                     if stats['loop_count'] % 200 == 0:  # 에러 로그 더 제한
-                        printf(f"Detection error cam{cam_id}: {e}", LT.error)
+                        printf(f"Detection error cam{cam_id}: {e}", ptype=LT.error)
                         logger.error(f"Detection error cam{cam_id}: {e}")
 
             # 고급 삼각측량
@@ -1195,7 +1195,7 @@ def main():
                                     interface.update(place_checker.flags)
                                 except Exception as e:
                                     if stats['loop_count'] % 300 == 0:
-                                        printf(f"UI update error: {e}", LT.warning)
+                                        printf(f"UI update error: {e}", ptype=LT.warning)
                         
                         # 고급 애니메이션 데이터 업데이트
                         if stats['loop_count'] % 20 == 0:  # 더 낮은 빈도
@@ -1205,7 +1205,7 @@ def main():
                         # 상세 로깅 (주기적)
                         if time.perf_counter() - last_detection_log > 2.0:
                             printf(f"Position: ({position_3d[0]:.2f}, {position_3d[1]:.2f}, {position_3d[2]:.2f}), "
-                                  f"Confidence: {position_entry['confidence']:.2f}", LT.success)
+                                  f"Confidence: {position_entry['confidence']:.2f}", ptype=LT.success)
                             last_detection_log = time.perf_counter()
                         
                     else:
@@ -1214,7 +1214,7 @@ def main():
                 except Exception as e:
                     stats['failed_triangulations'] += 1
                     if stats['loop_count'] % 200 == 0:
-                        printf(f"Triangulation error: {e}", LT.error)
+                        printf(f"Triangulation error: {e}", ptype=LT.error)
                         logger.error(f"Triangulation error: {e}")
 
             # 고급 애니메이션 처리 (메인 스레드)
@@ -1235,16 +1235,16 @@ def main():
                 animation_stats = animate.get_performance_stats()
                 system_stats = monitor.get_performance_report()
                 
-                printf("=== Detailed Statistics ===", LT.info)
-                printf(f"Detection: {detection_stats}", LT.info)
-                printf(f"Animation: {animation_stats}", LT.info)
-                printf(f"System: {system_stats}", LT.info)
-                printf(f"Success Rate: {stats['successful_triangulations']}/{stats['successful_triangulations']+stats['failed_triangulations']}", LT.info)
+                printf("=== Detailed Statistics ===", ptype=LT.info)
+                printf(f"Detection: {detection_stats}", ptype=LT.info)
+                printf(f"Animation: {animation_stats}", ptype=LT.info)
+                printf(f"System: {system_stats}", ptype=LT.info)
+                printf(f"Success Rate: {stats['successful_triangulations']}/{stats['successful_triangulations']+stats['failed_triangulations']}", ptype=LT.info)
             elif key == ord('r'):
                 # 통계 리셋
                 stats = {k: 0 for k in stats.keys()}
                 position_history.clear()
-                printf("Statistics reset", LT.info)
+                printf("Statistics reset", ptype=LT.info)
 
             # 적응형 FPS 제한
             elapsed = time.perf_counter() - loop_start
@@ -1252,19 +1252,19 @@ def main():
                 time.sleep(frame_interval - elapsed)
             elif elapsed > frame_interval * 2:
                 # 프레임 드롭 감지
-                printf(f"Frame drop detected: {elapsed*1000:.1f}ms", LT.warning)
+                printf(f"Frame drop detected: {elapsed*1000:.1f}ms", ptype=LT.warning)
 
     except KeyboardInterrupt:
-        printf("Terminated by user", LT.info)
+        printf("Terminated by user", ptype=LT.info)
         logger.info("System terminated by user")
     except Exception as e:
-        printf(f"Main loop error: {e}", LT.error)
+        printf(f"Main loop error: {e}", ptype=LT.error)
         logger.error(f"Main loop error: {e}")
         import traceback
         traceback.print_exc()
     finally:
         # 고급 정리 프로세스
-        printf("Starting advanced cleanup...", LT.info)
+        printf("Starting advanced cleanup...", ptype=LT.info)
         stop_flag_ref[0] = True
         time.sleep(0.3)
         
@@ -1272,7 +1272,7 @@ def main():
         if enable_profiling and main_profiler:
             main_profiler.disable()
             main_profiler.dump_stats("main_profile.prof")
-            printf("Main profile saved", LT.info)
+            printf("Main profile saved", ptype=LT.info)
         
         # 검출기 프로파일 저장
         detector.save_profile("detection_profile.prof")
@@ -1282,15 +1282,15 @@ def main():
         cv2.destroyAllWindows()
         
         # 최종 통계
-        printf("=== Final Advanced Statistics ===", LT.info)
-        printf(f"Total Loops: {stats['loop_count']}", LT.info)
-        printf(f"Total Detections: {stats['detection_count']}", LT.info)
-        printf(f"Total Triangulations: {stats['triangulation_count']}", LT.info)
-        printf(f"Success Rate: {stats['successful_triangulations']}/{stats['successful_triangulations']+stats['failed_triangulations']} ({100*stats['successful_triangulations']/(stats['successful_triangulations']+stats['failed_triangulations']) if (stats['successful_triangulations']+stats['failed_triangulations']) > 0 else 0:.1f}%)", LT.info)
+        printf("=== Final Advanced Statistics ===", ptype=LT.info)
+        printf(f"Total Loops: {stats['loop_count']}", ptype=LT.info)
+        printf(f"Total Detections: {stats['detection_count']}", ptype=LT.info)
+        printf(f"Total Triangulations: {stats['triangulation_count']}", ptype=LT.info)
+        printf(f"Success Rate: {stats['successful_triangulations']}/{stats['successful_triangulations']+stats['failed_triangulations']} ({100*stats['successful_triangulations']/(stats['successful_triangulations']+stats['failed_triangulations']) if (stats['successful_triangulations']+stats['failed_triangulations']) > 0 else 0:.1f}%)", ptype=LT.info)
         
         if stats['loop_count'] > 0:
-            printf(f"Detection Rate: {stats['detection_count']/stats['loop_count']*100:.1f}%", LT.info)
-            printf(f"Average Loop Time: {monitor.get_performance_report().get('avg_frame_time', 0)*1000:.1f}ms", LT.info)
+            printf(f"Detection Rate: {stats['detection_count']/stats['loop_count']*100:.1f}%", ptype=LT.info)
+            printf(f"Average Loop Time: {monitor.get_performance_report().get('avg_frame_time', 0)*1000:.1f}ms", ptype=LT.info)
         
         # 성능 보고서를 파일로 저장
         try:
@@ -1303,9 +1303,9 @@ def main():
             
             with open('performance_report.yaml', 'w') as f:
                 yaml.dump(performance_report, f, default_flow_style=False)
-            printf("Performance report saved to performance_report.yaml", LT.info)
+            printf("Performance report saved to performance_report.yaml", ptype=LT.info)
         except Exception as e:
-            printf(f"Failed to save performance report: {e}", LT.warning)
+            printf(f"Failed to save performance report: {e}", ptype=LT.warning)
         
         logger.info("Advanced Ball Tracking System shutdown complete")
 
