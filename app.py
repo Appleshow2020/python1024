@@ -1,5 +1,4 @@
 # main/app.py
-
 import sys
 from main.ApplicationController import ApplicationController
 from classes.printing import printf, LT

@@ -12,7 +12,58 @@ import traceback
 from typing import Optional, Dict, Any
 
 class ApplicationController:
-    """볼 트래킹 시스템의 메인 애플리케이션 컨트롤러"""
+    """
+    ApplicationController
+    ---------------------
+    Main controller for the advanced ball tracking system. Responsible for initializing, running, and managing the application's core components, including camera, detection, tracking, UI, and performance managers. Handles application lifecycle, user input, signal handling, and system cleanup.
+    Attributes:
+        config_manager (ConfigManager): Manages application configuration.
+        config (dict): Loaded configuration settings.
+        camera_manager (Optional[CameraManager]): Handles camera operations.
+        detection_manager (Optional[DetectionManager]): Handles ball detection logic.
+        tracking_manager (Optional[TrackingManager]): Handles 3D tracking logic.
+        ui_manager (Optional[UIManager]): Manages user interface updates.
+        performance_manager (Optional[PerformanceManager]): Monitors and reports system performance.
+        is_running (bool): Application running state.
+        frame_count (int): Number of processed frames.
+    Methods:
+        __init__():
+            Initializes the ApplicationController and sets up signal handlers.
+        _signal_handler(signum, frame):
+            Handles system signals for graceful shutdown.
+        initialize() -> bool:
+            Initializes all core components and prepares the application for execution.
+        run() -> bool:
+            Runs the main application loop after initialization.
+        _main_loop() -> bool:
+            Main processing loop for frame acquisition, detection, tracking, UI updates, and user input.
+        _print_controls():
+            Prints available user controls to the console.
+        _update_performance_monitoring(loop_start: float):
+            Updates performance statistics for the current frame.
+        _perform_ball_detection() -> tuple:
+            Performs ball detection on the current frame.
+        _perform_3d_tracking(pts_2d: list, cam_ids: list):
+            Performs 3D tracking using detected 2D points and camera IDs.
+        _update_user_interfaces(tracking_result):
+            Updates UI components based on tracking results.
+        _handle_user_input() -> bool:
+            Handles user keyboard input for application control.
+        _log_periodic_status(tracking_result):
+            Logs periodic status updates, including ball position and confidence.
+        _control_frame_rate(loop_start: float, frame_interval: float):
+            Controls the frame rate to match the target FPS.
+        _show_detailed_statistics():
+            Displays detailed statistics for detection, tracking, UI, and performance.
+        _reset_all_data():
+            Resets all statistics and tracking data.
+        _show_debug_information():
+            Displays debug information for cameras and application state.
+        _force_plot_update():
+            Forces an update of the UI plot/animation.
+        cleanup():
+            Cleans up all resources, stops threads, saves profiling data, and prints final statistics.
+    """
 
     def __init__(self):
         # 설정 관리
@@ -56,7 +107,8 @@ class ApplicationController:
             self.camera_manager = CameraManager(self.config)
 
             # 카메라 검색 및 초기화
-            if not self.camera_manager.initialize_cameras():
+            camera_count = self.config['camera'].get('camera_count', None)
+            if not self.camera_manager.initialize_cameras(camera_count):
                 printf("Failed to initialize cameras", ptype=LT.error)
                 return False
 
@@ -108,8 +160,10 @@ class ApplicationController:
 
         self.is_running = True
 
-        # 타이밍 설정
-        target_fps = self.config['camera']['fps']
+        target_fps = self.config.get('camera', {}).get('fps', None)
+        if not isinstance(target_fps, (int, float)) or target_fps is None or target_fps <= 0:
+            printf("Invalid or missing target_fps value in configuration. Using default value 30.", ptype=LT.warning)
+            target_fps = 30
         frame_interval = 1.0 / target_fps
 
         # 통계 변수
@@ -194,13 +248,14 @@ class ApplicationController:
 
         try:
             return self.tracking_manager.process_detections(pts_2d, cam_ids)
+        
         except Exception as e:
             printf(f"3D tracking error: {e}", ptype=LT.error)
             return None
-
+        
     def _update_user_interfaces(self, tracking_result):
         """사용자 인터페이스 업데이트"""
-        if not self.ui_manager or not tracking_result:
+        if not self.ui_manager or tracking_result is None:
             return
 
         try:
@@ -208,9 +263,6 @@ class ApplicationController:
             if tracking_result.get('zone_info'):
                 zone_flags = tracking_result['zone_info']['flags']
                 self.ui_manager.update_referee_ui(zone_flags)
-
-            # 애니메이션 업데이트 (주기적으로만)
-            if self.frame_count % 20 == 0:
                 position_data = self.tracking_manager.get_position_data_for_animation()
                 self.ui_manager.update_animation(position_data)
 
@@ -247,8 +299,8 @@ class ApplicationController:
     def _log_periodic_status(self, tracking_result):
         """주기적 상태 로깅"""
         if tracking_result:
-            position_3d = tracking_result['position_3d']
-            confidence = tracking_result['position_entry']['confidence']
+            position_3d = tracking_result.get('position_3d', [0.0, 0.0, 0.0])
+            confidence = tracking_result.get('position_entry', {}).get('confidence', 0.0)
             printf(f"Ball Position: ({position_3d[0]:.2f}, {position_3d[1]:.2f}, {position_3d[2]:.2f}), "
                   f"Confidence: {confidence:.2f}", ptype=LT.success)
 
@@ -340,7 +392,10 @@ class ApplicationController:
                 self.ui_manager.cleanup()
 
             # 3. OpenCV 창들 정리
-            cv2.destroyAllWindows()
+            try:
+                cv2.destroyAllWindows()
+            except Exception as e:
+                printf(f"Error while destroying OpenCV windows: {e}", ptype=LT.warning)
 
             # 4. 프로파일링 결과 저장
             if self.performance_manager:
@@ -361,10 +416,11 @@ class ApplicationController:
         except Exception as e:
             printf(f"Cleanup error: {e}", ptype=LT.error)
 
-    def _print_final_statistics(self):
-        """최종 통계 출력"""
-        printf("=== Final System Statistics ===", ptype=LT.info)
-        printf(f"Total Runtime: {self.frame_count} frames processed", ptype=LT.info)
+        if self.performance_manager:
+            total_uptime = self.performance_manager.get_performance_report().get('uptime', 0)
+            printf(f"Total Runtime: {self.frame_count} frames processed, {total_uptime:.1f} seconds elapsed", ptype=LT.info)
+        else:
+            printf(f"Total Runtime: {self.frame_count} frames processed", ptype=LT.info)
 
         if self.detection_manager:
             detection_stats = self.detection_manager.get_detection_statistics()
@@ -375,7 +431,7 @@ class ApplicationController:
             tracking_stats = self.tracking_manager.get_tracking_statistics()
             track_success = tracking_stats.get('success_rate', 0)
             printf(f"Tracking Performance: {track_success:.1f}% triangulation success", ptype=LT.info)
-
+            
         if self.performance_manager:
             performance_report = self.performance_manager.get_performance_report()
             avg_fps = performance_report.get('avg_fps', 0)
