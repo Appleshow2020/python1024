@@ -3,17 +3,30 @@ import time
 from classes.printing import *
 
 class CameraCalibration:
+    """
+    A class for handling camera calibration and projection matrix generation.
+    This class manages camera parameters and generates projection matrices for multiple cameras
+    based on their position and orientation in 3D space.
+    Attributes:
+        camera_configs (list): List of dictionaries containing camera configurations.
+        K (numpy.ndarray): 3x3 camera intrinsic matrix.
+        camera_params (dict): Dictionary containing generated camera parameters.
+    Methods:
+        _default_intrinsic_matrix(fx, fy, cx, cy): Creates default intrinsic matrix.
+        _rotation_matrix_from_euler(pitch, yaw, roll): Converts Euler angles to rotation matrix.
+        _create_projection_matrix(R, t): Creates projection matrix from rotation and translation.
+        _generate_camera_params(): Generates camera parameters for all configured cameras.
+        get_camera_params(): Returns camera parameters.
+        print_projection_matrices(): Prints projection matrices for all cameras.
+    Example:
+        camera_configs = [
+                "position": [0, 0, 0],
+                "rotation": [0, 0, 0]
+        ]
+        calib = CameraCalibration(camera_configs, fx, fy, cx, cy)
+    """
+    
     def __init__(self, camera_configs,*args):
-        """
-        camera_configs: list of dicts
-            각 dict는 카메라의 위치와 회전을 포함:
-            {
-                "id": "cam1",
-                "position": [x, y, z], # 미터
-                "rotation": [pitch, yaw, roll]  # 각도(도 단위)
-            }
-        args: camera settings()
-        """
         fx,fy,cx,cy = args
         self.camera_configs = camera_configs
         self.K = self._default_intrinsic_matrix(fx,fy,cx,cy)
@@ -72,7 +85,6 @@ class CameraCalibration:
         return camera_params
 
     def get_camera_params(self):
-        """각 카메라의 id와 projection matrix를 반환"""
         return self.camera_params
 
     def print_projection_matrices(self):

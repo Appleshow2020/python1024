@@ -1,9 +1,4 @@
 # core/managers/tracking_manager.py
-"""
-3D 트래킹 관리자 클래스
-기존 BallTracker3D 클래스와 삼각측량 로직을 관리
-"""
-
 import time
 import numpy as np
 from collections import deque
@@ -18,22 +13,51 @@ from classes.printing import printf, LT
 
 
 class TrackingManager:
-    """3D 볼 트래킹 및 위치 추적 관리자"""
-    
+    """
+    TrackingManager is responsible for managing the 3D ball tracking process, including calibration, detection processing, position history, and field zone checks.
+    Attributes:
+        config (Dict[str, Any]): Configuration dictionary for tracking and camera settings.
+        processing_config (Dict): Subset of config related to processing parameters.
+        tracker (Optional[BallTracker3D]): 3D ball tracker instance for triangulation and state updates.
+        place_checker (Optional[PlaceCheckerService]): Service for checking ball position within field zones.
+        camera_params (Optional[Dict]): Camera calibration parameters.
+        position_history (deque): History of tracked positions with a fixed maximum length.
+        tracking_stats (dict): Statistics on tracking performance and triangulation attempts.
+    Methods:
+        __init__(config):
+            Initializes the TrackingManager with configuration and sets up field zones and history.
+        _initialize_field_zones():
+            Initializes field zones and the place checker service.
+        initialize_calibration(selected_cameras: Dict[int, int]) -> bool:
+            Performs camera calibration using selected cameras and initializes the 3D tracker.
+        process_detections(pts_2d: List[Tuple[int, int]], cam_ids: List[int]) -> Optional[Dict[str, Any]]:
+            Processes 2D detections from multiple cameras, performs triangulation, updates state, and manages position history.
+        get_recent_positions(count: int = 10) -> List[Dict[str, Any]]:
+            Returns the most recent tracked positions up to the specified count.
+        get_position_data_for_animation() -> Dict[float, Tuple[float, float, float]]:
+            Returns a mapping of timestamps to 3D positions for animation purposes.
+        get_tracking_statistics() -> Dict[str, Any]:
+            Returns current tracking statistics, including success rate and latest position.
+        get_current_zone_flags() -> Optional[Dict[str, bool]]:
+            Returns the current field zone flags from the place checker.
+        reset_tracking_data():
+            Clears position history and resets tracking statistics and tracker state.
+    """
+
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.processing_config = config['processing']
         
-        # 트래킹 관련 컴포넌트들
+        # Tracking related components
         self.tracker: Optional[BallTracker3D] = None
         self.place_checker: Optional[PlaceCheckerService] = None
         self.camera_params: Optional[Dict] = None
         
-        # 위치 이력 관리
+        # Position history management
         history_size = self.processing_config['position_history_size']
         self.position_history = deque(maxlen=history_size)
         
-        # 트래킹 통계
+        # Tracking statistics
         self.tracking_stats = {
             'triangulation_attempts': 0,
             'successful_triangulations': 0,
@@ -41,11 +65,10 @@ class TrackingManager:
             'position_updates': 0
         }
         
-        # 필드 존 설정
+        # Field zone setup
         self._initialize_field_zones()
         
     def _initialize_field_zones(self):
-        """필드 존 초기화"""
         try:
             point_list = build_point_grid()
             zones = make_field_zones(point_list)
@@ -55,9 +78,8 @@ class TrackingManager:
             printf(f"Failed to initialize field zones: {e}", ptype=LT.error)
     
     def initialize_calibration(self, selected_cameras: Dict[int, int]) -> bool:
-        """카메라 캘리브레이션 초기화"""
         try:
-            # 카메라 설정 준비
+            # Prepare camera settings
             cam_configs = []
             for cam_idx in range(1, min(4, len(selected_cameras) + 1)):
                 camera_key = str(cam_idx)
@@ -70,19 +92,19 @@ class TrackingManager:
                 printf("No camera configurations found", ptype=LT.error)
                 return False
             
-            # 캘리브레이션 수행
+            # Perform calibration
             camera_config = self.config['camera']
             calibrate = CameraCalibration(
                 cam_configs, 
                 camera_config['width'], 
                 camera_config['height'], 
-                800, 800  # fx, fy 기본값
+                800, 800  # fx, fy default values
             )
             
             self.camera_params = calibrate.get_camera_params()
             printf("Camera calibration completed", ptype=LT.info)
             
-            # BallTracker3D 초기화
+            # Initialize BallTracker3D
             self.tracker = BallTracker3D(self.camera_params)
             printf("3D ball tracker initialized", ptype=LT.info)
             
@@ -93,16 +115,6 @@ class TrackingManager:
             return False
     
     def process_detections(self, pts_2d: List[Tuple[int, int]], cam_ids: List[int]) -> Optional[Dict[str, Any]]:
-        """
-        2D 검출 결과를 3D 위치로 변환 및 상태 업데이트
-        
-        Args:
-            pts_2d: 2D 검출 포인트들
-            cam_ids: 해당 카메라 ID들
-            
-        Returns:
-            상태 정보 딕셔너리 또는 None
-        """
         if not self.tracker:
             printf("Tracker not initialized", ptype=LT.error)
             return None
@@ -114,7 +126,7 @@ class TrackingManager:
         self.tracking_stats['triangulation_attempts'] += 1
         
         try:
-            # 3D 위치 계산 (삼각측량)
+            # Calculate 3D position (triangulation)
             position_3d = self.tracker.triangulate_point(pts_2d, cam_ids)
             
             if (position_3d is not None and 
@@ -124,24 +136,24 @@ class TrackingManager:
                 self.tracking_stats['successful_triangulations'] += 1
                 timestamp = time.perf_counter()
                 
-                # 상태 업데이트 (속도, 방향 계산)
+                # Update state (calculate velocity, direction)
                 state = self.tracker.update_state(position_3d, timestamp)
                 
                 if state.get('position') is not None:
-                    # 위치 이력에 추가
+                    # Add to position history
                     position_entry = {
                         'timestamp': timestamp,
                         'position': tuple(state['position']),
                         'velocity': tuple(state.get('velocity', (0, 0, 0))),
                         'direction': tuple(state.get('direction', (0, 0, 0))),
-                        'confidence': len(pts_2d) / 3.0,  # 최대 3개 카메라 기준
+                        'confidence': len(pts_2d) / 3.0,  # Based on max 3 cameras
                         'cam_count': len(pts_2d)
                     }
                     
                     self.position_history.append(position_entry)
                     self.tracking_stats['position_updates'] += 1
                     
-                    # 볼 위치 확인 (필드 존)
+                    # Check ball position (field zone)
                     zone_info = None
                     if self.place_checker:
                         bx, by = state["position"][0], state["position"][1]
@@ -151,7 +163,7 @@ class TrackingManager:
                             'flags': self.place_checker.get_flags()
                         }
                     
-                    # 종합 상태 정보 반환
+                    # Return comprehensive state info
                     return {
                         'position_3d': position_3d,
                         'state': state,
@@ -170,21 +182,18 @@ class TrackingManager:
         return None
     
     def get_recent_positions(self, count: int = 10) -> List[Dict[str, Any]]:
-        """최근 위치 이력 반환"""
         return list(self.position_history)[-count:]
     
     def get_position_data_for_animation(self) -> Dict[float, Tuple[float, float, float]]:
-        """애니메이션용 위치 데이터 반환"""
         return {
             entry['timestamp']: entry['position'] 
             for entry in self.position_history
         }
     
     def get_tracking_statistics(self) -> Dict[str, Any]:
-        """트래킹 통계 반환"""
         stats = self.tracking_stats.copy()
         
-        # 성공률 계산
+        # Calculate success rate
         if stats['triangulation_attempts'] > 0:
             stats['success_rate'] = (
                 stats['successful_triangulations'] / 
@@ -193,7 +202,7 @@ class TrackingManager:
         else:
             stats['success_rate'] = 0.0
         
-        # 추가 정보
+        # Additional info
         stats['position_history_size'] = len(self.position_history)
         stats['latest_position'] = None
         
@@ -208,13 +217,11 @@ class TrackingManager:
         return stats
     
     def get_current_zone_flags(self) -> Optional[Dict[str, bool]]:
-        """현재 필드 존 플래그들 반환"""
         if self.place_checker:
             return self.place_checker.get_flags()
         return None
     
     def reset_tracking_data(self):
-        """트래킹 데이터 및 통계 초기화"""
         self.position_history.clear()
         self.tracking_stats = {
             'triangulation_attempts': 0,
@@ -224,7 +231,7 @@ class TrackingManager:
         }
         
         if self.tracker:
-            # BallTracker3D의 이전 위치 데이터도 초기화
+            # Also clear previous position data in BallTracker3D
             self.tracker.prev_positions.clear()
             self.tracker.prev_times.clear()
         

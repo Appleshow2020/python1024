@@ -18,6 +18,62 @@ cv.destroyAllWindows()
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 class Multipose:
+    """
+    Multipose class for running multi-person pose estimation using MoveNet Multipose Lightning model.
+    This class provides methods to:
+    - Initialize TensorFlow and Media Foundation for video capture.
+    - Parse command-line arguments for device, file, resolution, and detection thresholds.
+    - Run pose estimation inference on video frames.
+    - Draw detected keypoints, skeletons, and bounding boxes on frames.
+    - Display real-time inference results with elapsed time.
+    Attributes:
+        parser (argparse.ArgumentParser): Argument parser for command-line options.
+        args (argparse.Namespace): Parsed command-line arguments.
+        cap_device (int or str): Video capture device index or file path.
+        cap_width (int): Width of the video capture frame.
+        cap_height (int): Height of the video capture frame.
+        MFShutdown (callable): Function to shutdown Media Foundation.
+        mirror (bool): Whether to mirror the video frames.
+        keypoint_score_th (float): Threshold for keypoint confidence score.
+        bbox_score_th (float): Threshold for bounding box confidence score.
+        cap (cv.VideoCapture): OpenCV video capture object.
+        model_url (str): URL to download the MoveNet model.
+        input_size (int): Input size for the model.
+        module (tfhub.Module): Loaded TensorFlow Hub module.
+        model (callable): Model inference function.
+        temp (int): Counter for failed frame reads.
+        start_time (float): Timestamp for measuring inference time.
+        ret (bool): Return value from frame capture.
+        frame (np.ndarray): Current video frame.
+        debug_image (np.ndarray): Frame with debug information drawn.
+        key (int): Key pressed during display.
+        image_width (int): Width of the input image.
+        image_height (int): Height of the input image.
+        input_image (np.ndarray): Preprocessed image for inference.
+        outputs (dict): Model outputs.
+        keypoints_with_scores (np.ndarray): Keypoints and scores from model output.
+        keypoints_list (list): List of keypoints for detected persons.
+        scores_list (list): List of keypoint scores for detected persons.
+        bbox_list (list): List of bounding boxes for detected persons.
+    Methods:
+        __init__():
+            Initializes TensorFlow settings and logging.
+        initialize_media_foundation():
+            Initializes Windows Media Foundation for video capture.
+            Returns a callable to shutdown Media Foundation.
+        get_args():
+            Parses command-line arguments for device, file, resolution, and thresholds.
+            Returns the parsed arguments.
+        run_inference(model, input_size, image):
+            Runs pose estimation inference on the given image using the specified model.
+            Returns lists of keypoints, scores, and bounding boxes.
+        main():
+            Main loop for capturing video, running inference, drawing results, and displaying output.
+        draw_debug(image, elapsed_time, keypoint_score_th, keypoints_list, scores_list, bbox_score_th, bbox_list):
+            Draws keypoints, skeletons, bounding boxes, and elapsed time on the image.
+            Returns the debug image.
+    """
+    
     def __init__(self):
         os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
         tf.get_logger().setLevel(logging.ERROR)

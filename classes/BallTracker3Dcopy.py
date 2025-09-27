@@ -4,8 +4,40 @@ import time
 
 class BallTracker3D:
     """
-    개선된 공 위치 계산 클래스
+    BallTracker3D(camera_params)
+    A class for detecting, triangulating, and tracking a colored ball in 3D space using multiple cameras.
+    Attributes:
+        camera_params (dict): Dictionary containing camera parameters for triangulation.
+        prev_positions (list): List of previous 3D positions of the ball.
+        prev_times (list): List of timestamps corresponding to previous positions.
+        lower_colors (list): List of lower HSV bounds for color detection.
+        upper_colors (list): List of upper HSV bounds for color detection.
+        min_area (int): Minimum contour area for valid detection.
+        max_area (int): Maximum contour area for valid detection.
+        min_circularity (float): Minimum circularity for valid contour.
+    Methods:
+        detect_ball(frame):
+            Detects the ball in a given image frame using color segmentation and contour analysis.
+            Args:
+                frame (np.ndarray): Input BGR image frame.
+            Returns:
+                tuple or None: (u, v) image coordinates of the detected ball center, or None if not found.
+        triangulate_point(pts_2d, cam_ids):
+            Triangulates the 3D position of the ball from two 2D image points and corresponding camera IDs.
+            Args:
+                pts_2d (list): List of two (u, v) tuples from different cameras.
+                cam_ids (list): List of two camera indices corresponding to pts_2d.
+            Returns:
+                np.ndarray: 3D position as (x, y, z), or array of NaNs if triangulation fails.
+        update_state(position_3d, timestamp):
+            Updates the internal state with the new 3D position and timestamp, and computes velocity and direction.
+            Args:
+                position_3d (np.ndarray): The new 3D position of the ball.
+                timestamp (float): The timestamp of the current position.
+            Returns:
+                dict: Dictionary containing 'position', 'velocity', and 'direction' as lists.
     """
+
     def __init__(self, camera_params):
         self.camera_params = camera_params
         self.prev_positions = []
@@ -29,12 +61,6 @@ class BallTracker3D:
         self.min_circularity = 0.3 # 최소 원형도
 
     def detect_ball(self, frame):
-        """
-        개선된 볼 검출 알고리즘
-        1. 여러 HSV 범위로 검출 시도
-        2. 형태학적 연산으로 노이즈 제거
-        3. 원형도 검사로 공 같은 객체 필터링
-        """
         if frame is None:
             return None
             
@@ -100,9 +126,6 @@ class BallTracker3D:
         return None
 
     def triangulate_point(self, pts_2d, cam_ids):
-        """
-        개선된 삼각측량 함수
-        """
         if len(pts_2d) < 2:
             print(f"\033[31m[{time.strftime('%X')}] [ERROR] Not enough camera data for triangulation.\033[0m")
             return np.array([np.nan, np.nan, np.nan])
@@ -151,9 +174,6 @@ class BallTracker3D:
             return np.array([np.nan, np.nan, np.nan])
     
     def update_state(self, position_3d, timestamp):
-        """
-        상태 업데이트 (속도, 가속도, 방향 계산)
-        """
         if np.any(np.isnan(position_3d)):
             return {
                 "position": [np.nan, np.nan, np.nan],

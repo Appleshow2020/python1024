@@ -4,19 +4,23 @@ from matplotlib.table import Table
 
 class UserInterface:
     """
-    심판에게 보여줄 UI를 구성하는 클래스
-
-    Functions : get_cell_color, plot_table
-    initial variables : nrow(default 3), ncols(5), cell_width(None), cell_height(None)
-
-    1. get_cell_color
-    properties : value(any)
-    UI 셀들의 값들에 색을 넣는 함수
-
-    2. plot_table
-    properties : l
-    UI를 보여주는 함수
+    A class for displaying a 3x3 grid-based user interface using matplotlib, where each cell represents a status indicator.
+    Attributes:
+        nrows (int): Number of rows in the grid (default: 3).
+        ncols (int): Number of columns in the grid (default: 3).
+        width (float): Width of each cell, calculated if not provided.
+        height (float): Height of each cell, calculated if not provided.
+        fig (matplotlib.figure.Figure): The matplotlib figure object.
+        ax (matplotlib.axes.Axes): The matplotlib axes object.
+    Methods:
+        __init__(nrows=3, ncols=3, cell_width=None, cell_height=None):
+            Initializes the UserInterface with the specified grid size and cell dimensions.
+        get_cell_color(value):
+            Returns a color code based on the boolean or string value for cell background.
+        update(l):
+            Updates the grid display with new values from the provided dictionary `l`.
     """
+    
     def __init__(self, nrows=3, ncols=3, cell_width=None, cell_height=None):
         self.nrows = nrows
         self.ncols = ncols

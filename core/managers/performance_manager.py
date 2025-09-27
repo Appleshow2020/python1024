@@ -1,9 +1,4 @@
 # core/managers/performance_manager.py
-"""
-성능 모니터링 관리자
-기존 SystemMonitor, 프로파일링 관련 기능들을 통합 관리
-"""
-
 import time
 import cProfile
 import pstats
@@ -21,7 +16,42 @@ except ImportError:
 
 
 class PerformanceManager:
-    """시스템 성능 모니터링 및 프로파일링 관리자"""
+    """
+    PerformanceManager is responsible for monitoring and reporting the performance of an application,
+    including frame timing, CPU and memory usage, and optional profiling using cProfile.
+    Attributes:
+        config (Dict[str, Any]): Configuration dictionary for performance and profiling settings.
+        profiling_config (Dict[str, Any]): Profiling-specific configuration.
+        start_time (float): Timestamp when the manager was initialized.
+        frame_times (deque): Recent frame times for FPS and frame time statistics.
+        cpu_usage (deque): Recent CPU usage percentages.
+        memory_usage (deque): Recent memory usage in MB.
+        last_stats_time (float): Last time periodic stats were printed.
+        enable_profiling (bool): Whether profiling is enabled.
+        main_profiler (Optional[cProfile.Profile]): The main cProfile profiler instance.
+        psutil_available (bool): Whether psutil is available for system monitoring.
+        psutil (module): Reference to the psutil module (if available).
+        process (psutil.Process): Reference to the current process (if psutil is available).
+    Methods:
+        _setup_profiling() -> bool:
+            Determines if profiling should be enabled based on environment variables and config.
+        start_profiling():
+            Starts the main cProfile profiler if profiling is enabled.
+        stop_profiling():
+            Stops the main cProfile profiler if profiling is enabled.
+        update_frame_time(frame_time: float):
+            Records a new frame time for performance statistics.
+        update_system_stats():
+            Updates CPU and memory usage statistics if psutil is available.
+        get_performance_report() -> Dict[str, Any]:
+            Returns a dictionary containing current performance statistics.
+        print_periodic_stats():
+            Prints performance statistics at configured intervals.
+        save_profiling_results():
+            Saves the cProfile results to file if profiling is enabled.
+        save_performance_report():
+            Saves the current performance report to a JSON file.
+    """
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -48,7 +78,6 @@ class PerformanceManager:
             printf("psutil not available - limited system monitoring", ptype=LT.warning)
     
     def _setup_profiling(self) -> bool:
-        """프로파일링 설정"""
         # 환경변수 확인
         if os.getenv('PROFILE', 'False').lower() == 'true':
             return True
@@ -60,24 +89,20 @@ class PerformanceManager:
         return False
     
     def start_profiling(self):
-        """메인 프로파일링 시작"""
         if self.enable_profiling:
             self.main_profiler = cProfile.Profile()
             self.main_profiler.enable()
             printf("Main profiling started", ptype=LT.info)
     
     def stop_profiling(self):
-        """메인 프로파일링 종료"""
         if self.enable_profiling and self.main_profiler:
             self.main_profiler.disable()
             printf("Main profiling stopped", ptype=LT.info)
     
     def update_frame_time(self, frame_time: float):
-        """프레임 시간 업데이트"""
         self.frame_times.append(frame_time)
     
     def update_system_stats(self):
-        """시스템 통계 업데이트"""
         if not self.psutil_available:
             return
             
@@ -92,7 +117,6 @@ class PerformanceManager:
             printf(f"System stats update failed: {e}", ptype=LT.warning)
     
     def get_performance_report(self) -> Dict[str, Any]:
-        """종합 성능 리포트 생성"""
         current_time = time.perf_counter()
         uptime = current_time - self.start_time
         
@@ -127,7 +151,6 @@ class PerformanceManager:
         return report
     
     def print_periodic_stats(self):
-        """주기적 통계 출력"""
         current_time = time.perf_counter()
         stats_interval = self.config.get('processing', {}).get('update_intervals', {}).get('stats', 5.0)
         
@@ -154,7 +177,6 @@ class PerformanceManager:
         self.last_stats_time = current_time
     
     def save_profiling_results(self):
-        """프로파일링 결과 저장"""
         if not self.enable_profiling or not self.main_profiler:
             return
         
@@ -181,7 +203,6 @@ class PerformanceManager:
             printf(f"Failed to save profiling results: {e}", ptype=LT.error)
     
     def save_performance_report(self):
-        """성능 보고서를 파일로 저장"""
         try:
             report = self.get_performance_report()
             timestamp = time.strftime("%Y%m%d_%H%M%S")

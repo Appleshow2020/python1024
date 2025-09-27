@@ -2,6 +2,26 @@ import matplotlib.pyplot as plt
 from matplotlib.table import Table
 
 class UserInterface:
+    """
+    UserInterface provides a simple graphical table-based UI for displaying the status of various boolean indicators.
+    Attributes:
+        nrows (int): Number of rows in the table (default: 3).
+        ncols (int): Number of columns in the table (default: 3).
+        width (float): Width of each cell as a fraction of the table width.
+        height (float): Height of each cell as a fraction of the table height.
+        fig (matplotlib.figure.Figure): The matplotlib figure object.
+        ax (matplotlib.axes.Axes): The axes object for drawing the table.
+    Methods:
+        __init__(nrows=3, ncols=3):
+            Initializes the UserInterface, sets up the figure and axes, and configures the table layout.
+        get_cell_color(value):
+            Returns a color code based on the boolean value ('True' for green, 'False' for red, otherwise white).
+        update(l):
+            Updates the table display with the current status values.
+            Args:
+                l (list): List of status values (as strings), expected to be at least 9 elements long.
+    """
+
     def __init__(self, nrows=3, ncols=3):
         self.nrows = nrows
         self.ncols = ncols

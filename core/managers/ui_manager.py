@@ -1,9 +1,4 @@
 # core/managers/ui_manager.py
-"""
-UI 관리자 클래스
-기존 UserInterface, AdvancedAnimationWrapper 등의 UI 컴포넌트들을 통합 관리
-"""
-
 import time
 from typing import Dict, List, Optional, Any
 from collections import deque
@@ -14,8 +9,6 @@ from classes.printing import printf, LT
 
 
 class UIManager:
-    """사용자 인터페이스 통합 관리자"""
-    
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.ui_config = config.get('processing', {}).get('update_intervals', {})
@@ -42,7 +35,6 @@ class UIManager:
         self._initialize_components()
     
     def _initialize_components(self):
-        """UI 컴포넌트들 초기화"""
         try:
             # UserInterface 초기화
             self.user_interface = UserInterface()
@@ -60,7 +52,6 @@ class UIManager:
             self.animation_service = None
     
     def update_referee_ui(self, zone_flags: Dict[str, bool]) -> bool:
-        """레퍼리 UI 업데이트"""
         current_time = time.perf_counter()
         
         # 업데이트 간격 확인
@@ -95,7 +86,6 @@ class UIManager:
             return False
     
     def update_animation(self, position_data: Dict[float, Any]) -> bool:
-        """애니메이션 업데이트"""
         current_time = time.perf_counter()
         
         # 업데이트 간격 확인
@@ -118,7 +108,6 @@ class UIManager:
             return False
     
     def process_animation_updates(self) -> bool:
-        """애니메이션 업데이트 처리 (메인 스레드에서 호출)"""
         if not self.animation_service:
             return False
         
@@ -130,7 +119,6 @@ class UIManager:
             return False
     
     def force_animation_update(self, position_data: Dict[float, Any]):
-        """강제 애니메이션 업데이트 (즉시 실행)"""
         if self.animation_service:
             try:
                 self.animation_service.force_update(position_data)
@@ -139,7 +127,6 @@ class UIManager:
                 printf(f"Force animation update error: {e}", ptype=LT.warning)
     
     def get_ui_statistics(self) -> Dict[str, Any]:
-        """UI 통계 반환"""
         stats = self.ui_stats.copy()
         
         # 애니메이션 성능 통계 추가
@@ -150,7 +137,6 @@ class UIManager:
         return stats
     
     def cleanup(self):
-        """UI 리소스 정리"""
         printf("Cleaning up UI components...", ptype=LT.info)
         
         if self.animation_service:

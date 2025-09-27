@@ -1,9 +1,4 @@
 # core/managers/detection_manager.py
-"""
-볼 검출 관리자 클래스
-기존 ProfiledBallDetector 클래스를 통합하여 검출 프로세스를 관리
-"""
-
 import cv2
 import time
 import numpy as np
@@ -14,10 +9,34 @@ from core.services.ball_detector import BallDetectorService
 from core.managers.camera_manager import CameraManager
 from classes.printing import printf, LT
 
-
 class DetectionManager:
-    """볼 검출 관리자 클래스"""
-    
+    """
+    DetectionManager manages the detection process for multiple camera streams, tracks detection statistics, 
+    and provides visual feedback and display for detected objects (e.g., balls).
+    Attributes:
+        camera_manager (CameraManager): The manager responsible for handling camera streams.
+        config (Dict[str, Any]): Configuration dictionary containing detection and display settings.
+        detection_config (Dict[str, Any]): Detection-specific configuration.
+        display_config (Dict[str, Any]): Display-specific configuration.
+        detector (BallDetectorService): Service responsible for performing object detection.
+        detection_stats (dict): Dictionary tracking detection statistics such as total, successful, and failed detections, and detection times.
+        frame_count (int): Counter for processed frames.
+    Methods:
+        process_frame_detections() -> Tuple[List[Tuple[int, int]], List[int]]:
+            Processes frames from all active cameras, performs detection, updates statistics, 
+            and provides visual feedback. Returns detected points and corresponding camera IDs.
+        _add_visual_feedback(frame: np.ndarray, pt: Tuple[int, int], cam_id: int):
+            Adds visual feedback (e.g., circles, FPS info) to the frame at the detected point.
+        _display_frame(frame: np.ndarray, cam_id: int):
+            Displays the frame with optional camera statistics overlay.
+        get_detection_statistics() -> Dict[str, Any]:
+            Returns a dictionary containing current detection statistics, including success rate and average detection time.
+        reset_statistics():
+            Resets all detection statistics and frame count.
+        save_detection_profile(filename: str = "detection_profile.prof"):
+            Saves the current detection profile to a file.
+    """
+        
     def __init__(self, camera_manager: CameraManager, config: Dict[str, Any]):
         self.camera_manager = camera_manager
         self.config = config
@@ -39,12 +58,6 @@ class DetectionManager:
         self.frame_count = 0
         
     def process_frame_detections(self) -> Tuple[List[Tuple[int, int]], List[int]]:
-        """
-        현재 프레임에서 모든 카메라의 볼 검출 수행
-        Returns:
-            pts_2d: 2D 검출 포인트들
-            cam_ids: 해당 카메라 ID들
-        """
         self.frame_count += 1
         pts_2d = []
         cam_ids = []
@@ -96,7 +109,6 @@ class DetectionManager:
         return pts_2d, cam_ids
     
     def _add_visual_feedback(self, frame: np.ndarray, pt: Tuple[int, int], cam_id: int):
-        """검출된 볼에 시각적 피드백 추가"""
         radius = self.display_config['circle_radius']
         thickness = self.display_config['line_thickness']
         
@@ -111,7 +123,6 @@ class DetectionManager:
                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
     
     def _display_frame(self, frame: np.ndarray, cam_id: int):
-        """프레임 표시 및 상태 정보 추가"""
         # 카메라 통계 표시 (주기적으로)
         if self.frame_count % 30 == 0:
             cam_stats = self.camera_manager.streams[cam_id].stats
@@ -125,7 +136,6 @@ class DetectionManager:
         cv2.imshow(f"CAM{cam_id}", frame)
     
     def get_detection_statistics(self) -> Dict[str, Any]:
-        """검출 통계 반환"""
         base_stats = {
             'total_detections': self.detection_stats['total_detections'],
             'successful_detections': self.detection_stats['successful_detections'],
@@ -152,7 +162,6 @@ class DetectionManager:
         return base_stats
     
     def reset_statistics(self):
-        """검출 통계 초기화"""
         self.detection_stats = {
             'total_detections': 0,
             'successful_detections': 0,
@@ -163,5 +172,4 @@ class DetectionManager:
         printf("Detection statistics reset", ptype=LT.info)
     
     def save_detection_profile(self, filename: str = "detection_profile.prof"):
-        """검출기 프로파일 저장"""
         self.detector.save_profile(filename)

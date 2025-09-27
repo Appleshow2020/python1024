@@ -17,8 +17,44 @@ from classes.printing import printf, LT
 
 
 class CameraManager:
-    """카메라 검색, 설정, 스트림 관리를 담당하는 클래스"""
+    """
+    CameraManager is responsible for managing multiple camera devices, including discovery, selection, initialization, streaming, and resource management.
+    Attributes:
+        config (Dict[str, Any]): The overall configuration dictionary.
+        camera_config (Dict[str, Any]): Camera-specific configuration.
+        frame_width (int): Desired frame width for camera capture.
+        frame_height (int): Desired frame height for camera capture.
+        target_fps (int): Target frames per second for camera capture.
+        buffer_size (int): Number of frames to buffer per camera.
+        search_range (int): Number of device indices to search for available cameras.
+        streams (Dict[int, CamStream]): Active camera streams indexed by camera ID.
+        stop_flag_ref (List[bool]): Reference flag to signal threads to stop.
+        camera_threads (List[Thread]): List of camera capture threads.
+        selected_cameras (Dict[int, int]): Mapping of logical camera IDs to device indices.
+    Methods:
+        __init__(config: Dict[str, Any]):
+            Initialize CameraManager with configuration.
+        find_available_cameras() -> Dict[int, Dict[str, Any]]:
+            Discover available camera devices in parallel and return their properties.
+        select_cameras(available_cameras: Dict[int, Dict[str, Any]], camera_count: int) -> Dict[int, int]:
+            Automatically select the best cameras based on resolution.
+        initialize_cameras(camera_count: int = None) -> bool:
+            Discover and select cameras, optionally prompting for camera count.
+        _setup_camera(cap: cv2.VideoCapture) -> bool:
+            Apply configuration settings to an individual camera.
+        _camera_thread(cam_id: int, device_id: int):
+            Thread function for capturing frames from a single camera.
+        start_camera_threads() -> bool:
+            Start threads for all selected cameras and wait for initialization.
+        get_frame_snapshot() -> Dict[int, np.ndarray]:
+            Retrieve the latest frame from each active camera.
+        get_camera_stats() -> Dict[int, Dict[str, Any]]:
+            Get statistics for each active camera stream.
+        stop_cameras():
+            Stop all camera threads and release resources.
+    """
     
+
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.camera_config = config['camera']

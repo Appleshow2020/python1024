@@ -1,33 +1,13 @@
 import cv2 as cv
 import numpy as np
 
-
 class BallTracker3D:
-    """
-    공의 위치를 계산하는 클래스
-
-    Functions : detect_ball, triangulate_point, update_state
-    initial variables : camera_params
-    """
     def __init__(self, camera_params):
-        """
-        camera_params: dict
-            {
-                "cam1": {"P": 3x4 projection matrix, "id": 1},
-                "cam2": {"P": 3x4 projection matrix, "id": 2},
-                ...
-            }
-        """
         self.camera_params = camera_params
         self.prev_positions = []
         self.prev_times = []
 
     def detect_ball(self, frame):
-        """
-        1. HSV 마스킹으로 공 검출 시도
-        2. 실패 시 YOLO로 대체 검출
-        Return: (u, v) or None
-        """
         # HSV 마스킹
         hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
         lower_orange = np.array([10, 100, 100])
@@ -60,11 +40,6 @@ class BallTracker3D:
         return None  # 검출 실패
 
     def triangulate_point(self, pts_2d, cam_ids):
-        """
-        pts_2d: list of (u, v) tuples from two cameras
-        cam_ids: list of camera IDs corresponding to pts_2d
-        Returns: 3D world coordinate (x, y, z)
-        """
         assert len(pts_2d) >= 2, "Need at least two views for triangulation."
 
         P1 = self.camera_params[cam_ids[0]]["P"]
@@ -78,11 +53,6 @@ class BallTracker3D:
         return point_3d.flatten()
 
     def update_state(self, position_3d, timestamp):
-        """
-        position_3d: numpy array of shape (3,)
-        timestamp: float (time in seconds)
-        Returns: dict with position, velocity, acceleration, direction
-        """
         self.prev_positions.append(position_3d)
         self.prev_times.append(timestamp)
 

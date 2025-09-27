@@ -2,18 +2,59 @@ import numpy as np
 from math import sin, cos, tan, atan2
 
 class CameraPOCalc:
+    """Camera Position and Orientation Calculator.
+    This class calculates the optimal camera position and orientation to capture a given rectangular region.
+    It uses optimization techniques to find camera parameters that ensure the target area is fully visible
+    within the camera's field of view.
+    Parameters
+    ----------
+    W : int, optional (default=1920)
+        Image width in pixels
+    H : int, optional (default=1080)
+        Image height in pixels
+    alpha_h : float, optional (default=np.radians(60))
+        Horizontal field of view in radians
+    alpha_v : float, optional (default=np.radians(60))
+        Vertical field of view in radians
+    theta_p_bounds : tuple of float, optional (default=(np.radians(0), np.radians(359)))
+        (min, max) bounds for pitch angle in radians
+    theta_r_bounds : tuple of float, optional (default=(np.radians(0), np.radians(359)))
+        (min, max) bounds for roll angle in radians
+    Methods
+    -------
+    solve(a=None, b=None, O=None, phi=None, P_list=None, n_restarts=12, iters=1200)
+        Solves for optimal camera position and orientation.
+        Parameters:
+        - a, b: float
+            Rectangle dimensions
+        - O: array-like
+            Origin point coordinates [X0, Y0, Z0]
+        - phi: float
+            Rotation angle of rectangle in radians
+        - P_list: array-like
+            List of 3D points defining the rectangle corners
+        - n_restarts: int
+            Number of optimization restarts
+        - iters: int
+            Maximum iterations per optimization attempt
+        Returns:
+        - dict containing:
+            - success: bool
+            - C: [x, y, z] camera position
+            - yaw, pitch, roll: camera orientation angles
+            - diagnostics: projection details and optimization score
+    Notes
+    -----
+    The class uses a soft-margin optimization approach to ensure the target points
+    are within the camera's field of view while respecting physical constraints.
+    """
+
     def __init__(self, W=1920, H=1080,
                  alpha_h=np.radians(60),
                  alpha_v=np.radians(60),
                  theta_p_bounds=(np.radians(0), np.radians(359)),
                  theta_r_bounds=(np.radians(0), np.radians(359))):
-        """
-        카메라 사양 및 제약 조건 초기화
-        W, H: 해상도 (pixels)
-        alpha_h, alpha_v: 수평/수직 FOV (radians)
-        theta_p_bounds: pitch 허용 범위
-        theta_r_bounds: roll 허용 범위
-        """
+        
         self.W, self.H = W, H
         self.alpha_h, self.alpha_v = alpha_h, alpha_v
         self.theta_p_bounds = theta_p_bounds

@@ -5,6 +5,25 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
 class Animation:
+    """
+    Animation class for real-time plotting of velocity, gyroscope, and position data.
+    Attributes:
+        vl (dict): Dictionary containing velocity data, keyed by timestamp.
+        gl (dict): Dictionary containing gyroscope data, keyed by timestamp.
+        pl (dict): Dictionary containing position data, keyed by timestamp.
+        fig (matplotlib.figure.Figure): The matplotlib figure object.
+        axs (numpy.ndarray): Array of matplotlib axes for subplots.
+        lines (dict): Dictionary of matplotlib Line2D objects for each data component.
+        window_size (int): Time window (in seconds) for the x-axis scroll.
+    Methods:
+        __init__(vl: dict, gl: dict, pl: dict):
+            Initializes the Animation object, sets up the figure, axes, and line objects.
+        update(frame):
+            Updates the plot with new data for each frame. Adjusts x and y limits dynamically
+            based on the latest data within the window_size.
+        main():
+            Starts the animation using matplotlib's FuncAnimation and displays the plot.
+    """
     def __init__(self, vl:dict, gl:dict, pl:dict):
         self.vl = vl  # dict
         self.gl = gl
