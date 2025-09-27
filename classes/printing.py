@@ -32,6 +32,6 @@ def printf(*text:object,
     
     color = getattr(Colors, ptype.value, Colors.reset)
     if useReset:
-        print(f"{color}[{now2()}]", f"[{ptype.name}]", text, Colors.reset, end=end, sep=sep)
+        print(f"{color}[{now2()}]", f"[{ptype.name}]", *text, Colors.reset, end=end, sep=sep)
     else:
         print(f"{color}[{now2()}]", f"[{ptype.name}]", end=end, sep=sep)

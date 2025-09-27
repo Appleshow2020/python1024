@@ -34,61 +34,61 @@ class ApplicationController:
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
-        printf("Application Controller initialized", LT.info)
+        printf("Application Controller initialized", ptype=LT.info)
 
     def _signal_handler(self, signum, frame):
         """시스템 신호 처리"""
-        printf(f"Received signal {signum}, shutting down gracefully...", LT.warning)
+        printf(f"Received signal {signum}, shutting down gracefully...", ptype=LT.warning)
         self.is_running = False
 
     def initialize(self) -> bool:
         """애플리케이션 초기화"""
-        printf("=== Initializing Advanced Ball Tracking System ===", LT.info)
+        printf("=== Initializing Advanced Ball Tracking System ===", ptype=LT.info)
 
         try:
             # 1. 성능 매니저 초기화 및 프로파일링 시작
-            printf("Initializing performance manager...", LT.info)
+            printf("Initializing performance manager...", ptype=LT.info)
             self.performance_manager = PerformanceManager(self.config)
             self.performance_manager.start_profiling()
 
             # 2. 카메라 매니저 초기화
-            printf("Initializing camera manager...", LT.info)
+            printf("Initializing camera manager...", ptype=LT.info)
             self.camera_manager = CameraManager(self.config)
 
             # 카메라 검색 및 초기화
             if not self.camera_manager.initialize_cameras():
-                printf("Failed to initialize cameras", LT.error)
+                printf("Failed to initialize cameras", ptype=LT.error)
                 return False
 
             # 카메라 스레드 시작
             if not self.camera_manager.start_camera_threads():
-                printf("Failed to start camera threads", LT.error)
+                printf("Failed to start camera threads", ptype=LT.error)
                 return False
 
             # 3. 트래킹 매니저 초기화
-            printf("Initializing tracking manager...", LT.info)
+            printf("Initializing tracking manager...", ptype=LT.info)
             self.tracking_manager = TrackingManager(self.config)
 
             # 카메라 캘리브레이션
             if not self.tracking_manager.initialize_calibration(
                 self.camera_manager.selected_cameras
             ):
-                printf("Failed to initialize camera calibration", LT.error)
+                printf("Failed to initialize camera calibration", ptype=LT.error)
                 return False
 
             # 4. 검출 매니저 초기화
-            printf("Initializing detection manager...", LT.info)
+            printf("Initializing detection manager...", ptype=LT.info)
             self.detection_manager = DetectionManager(self.camera_manager, self.config)
 
             # 5. UI 매니저 초기화
-            printf("Initializing UI manager...", LT.info)
+            printf("Initializing UI manager...", ptype=LT.info)
             self.ui_manager = UIManager(self.config)
 
-            printf("=== All components initialized successfully ===", LT.success)
+            printf("=== All components initialized successfully ===", ptype=LT.success)
             return True
 
         except Exception as e:
-            printf(f"Initialization failed: {e}", LT.error)
+            printf(f"Initialization failed: {e}", ptype=LT.error)
             import traceback
             traceback.print_exc()
             return False
@@ -96,14 +96,14 @@ class ApplicationController:
     def run(self) -> bool:
         """메인 애플리케이션 실행"""
         if not self.initialize():
-            printf("Application initialization failed", LT.error)
+            printf("Application initialization failed", ptype=LT.error)
             return False
 
         return self._main_loop()
 
     def _main_loop(self) -> bool:
         """메인 프로세싱 루프"""
-        printf("=== Starting Main Processing Loop ===", LT.info)
+        printf("=== Starting Main Processing Loop ===", ptype=LT.info)
         self._print_controls()
 
         self.is_running = True
@@ -146,27 +146,27 @@ class ApplicationController:
                 # 7. 프레임 속도 제한
                 self._control_frame_rate(loop_start, frame_interval)
 
-            printf("Main processing loop completed", LT.info)
+            printf("Main processing loop completed", ptype=LT.info)
             return True
 
         except KeyboardInterrupt:
-            printf("Application terminated by user", LT.info)
+            printf("Application terminated by user", ptype=LT.info)
             return True
         except Exception as e:
-            printf(f"Main loop error: {e}", LT.error)
+            printf(f"Main loop error: {e}", ptype=LT.error)
             import traceback
             traceback.print_exc()
             return False
 
     def _print_controls(self):
         """컨트롤 안내 출력"""
-        printf("=== Controls ===", LT.info)
-        printf("'q' = Quit application", LT.info)
-        printf("'s' = Show detailed statistics", LT.info)
-        printf("'r' = Reset all statistics and data", LT.info)
-        printf("'d' = Show debug information", LT.info)
-        printf("'p' = Force plot update", LT.info)
-        printf("================", LT.info)
+        printf("=== Controls ===", ptype=LT.info)
+        printf("'q' = Quit application", ptype=LT.info)
+        printf("'s' = Show detailed statistics", ptype=LT.info)
+        printf("'r' = Reset all statistics and data", ptype=LT.info)
+        printf("'d' = Show debug information", ptype=LT.info)
+        printf("'p' = Force plot update", ptype=LT.info)
+        printf("================", ptype=LT.info)
 
     def _update_performance_monitoring(self, loop_start: float):
         """성능 모니터링 업데이트"""
@@ -184,7 +184,7 @@ class ApplicationController:
         try:
             return self.detection_manager.process_frame_detections()
         except Exception as e:
-            printf(f"Ball detection error: {e}", LT.error)
+            printf(f"Ball detection error: {e}", ptype=LT.error)
             return [], []
 
     def _perform_3d_tracking(self, pts_2d: list, cam_ids: list):
@@ -195,7 +195,7 @@ class ApplicationController:
         try:
             return self.tracking_manager.process_detections(pts_2d, cam_ids)
         except Exception as e:
-            printf(f"3D tracking error: {e}", LT.error)
+            printf(f"3D tracking error: {e}", ptype=LT.error)
             return None
 
     def _update_user_interfaces(self, tracking_result):
@@ -219,14 +219,14 @@ class ApplicationController:
                 self.ui_manager.process_animation_updates()
 
         except Exception as e:
-            printf(f"UI update error: {e}", LT.warning)
+            printf(f"UI update error: {e}", ptype=LT.warning)
 
     def _handle_user_input(self) -> bool:
         """사용자 입력 처리"""
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord('q'):
-            printf("Quit requested by user", LT.info)
+            printf("Quit requested by user", ptype=LT.info)
             self.is_running = False
             return False
 
@@ -250,7 +250,7 @@ class ApplicationController:
             position_3d = tracking_result['position_3d']
             confidence = tracking_result['position_entry']['confidence']
             printf(f"Ball Position: ({position_3d[0]:.2f}, {position_3d[1]:.2f}, {position_3d[2]:.2f}), "
-                  f"Confidence: {confidence:.2f}", LT.success)
+                  f"Confidence: {confidence:.2f}", ptype=LT.success)
 
     def _control_frame_rate(self, loop_start: float, frame_interval: float):
         """프레임 속도 제한"""
@@ -259,40 +259,40 @@ class ApplicationController:
         if elapsed < frame_interval:
             time.sleep(frame_interval - elapsed)
         elif elapsed > frame_interval * 2:
-            printf(f"Frame drop detected: processing took {elapsed*1000:.1f}ms", LT.warning)
+            printf(f"Frame drop detected: processing took {elapsed*1000:.1f}ms", ptype=LT.warning)
 
     def _show_detailed_statistics(self):
         """상세 통계 표시"""
-        printf("=== Detailed System Statistics ===", LT.info)
+        printf("=== Detailed System Statistics ===", ptype=LT.info)
 
         # 검출 통계
         if self.detection_manager:
             detection_stats = self.detection_manager.get_detection_statistics()
             printf(f"Detection Stats - Success Rate: {detection_stats.get('success_rate', 0):.1f}%, "
-                  f"Total: {detection_stats.get('total_detections', 0)}", LT.info)
+                  f"Total: {detection_stats.get('total_detections', 0)}", ptype=LT.info)
 
         # 트래킹 통계
         if self.tracking_manager:
             tracking_stats = self.tracking_manager.get_tracking_statistics()
             printf(f"Tracking Stats - Success Rate: {tracking_stats.get('success_rate', 0):.1f}%, "
-                  f"Positions: {tracking_stats.get('position_history_size', 0)}", LT.info)
+                  f"Positions: {tracking_stats.get('position_history_size', 0)}", ptype=LT.info)
 
         # UI 통계
         if self.ui_manager:
             ui_stats = self.ui_manager.get_ui_statistics()
             printf(f"UI Stats - Updates: {ui_stats.get('ui_updates', 0)}, "
-                  f"Animation: {ui_stats.get('animation_updates', 0)}", LT.info)
+                  f"Animation: {ui_stats.get('animation_updates', 0)}", ptype=LT.info)
 
         # 성능 통계
         if self.performance_manager:
             perf_stats = self.performance_manager.get_performance_report()
             printf(f"Performance - FPS: {perf_stats.get('avg_fps', 0):.1f}, "
                   f"CPU: {perf_stats.get('avg_cpu_usage', 0):.1f}%, "
-                  f"Memory: {perf_stats.get('avg_memory_mb', 0):.1f}MB", LT.info)
+                  f"Memory: {perf_stats.get('avg_memory_mb', 0):.1f}MB", ptype=LT.info)
 
     def _reset_all_data(self):
         """모든 데이터 및 통계 리셋"""
-        printf("Resetting all statistics and data...", LT.info)
+        printf("Resetting all statistics and data...", ptype=LT.info)
 
         if self.detection_manager:
             self.detection_manager.reset_statistics()
@@ -301,18 +301,18 @@ class ApplicationController:
             self.tracking_manager.reset_tracking_data()
 
         self.frame_count = 0
-        printf("All data reset completed", LT.success)
+        printf("All data reset completed", ptype=LT.success)
 
     def _show_debug_information(self):
         """디버그 정보 표시"""
-        printf("=== Debug Information ===", LT.debug)
-        printf(f"Application Status: Running={self.is_running}, Frames={self.frame_count}", LT.debug)
+        printf("=== Debug Information ===", ptype=LT.debug)
+        printf(f"Application Status: Running={self.is_running}, Frames={self.frame_count}", ptype=LT.debug)
 
         if self.camera_manager:
             camera_stats = self.camera_manager.get_camera_stats()
             for cam_id, stats in camera_stats.items():
                 printf(f"Camera {cam_id}: FPS={stats.get('avg_fps', 0):.1f}, "
-                      f"Captured={stats.get('frames_captured', 0)}", LT.debug)
+                      f"Captured={stats.get('frames_captured', 0)}", ptype=LT.debug)
 
     def _force_plot_update(self):
         """플롯 강제 업데이트"""
@@ -320,23 +320,23 @@ class ApplicationController:
             try:
                 position_data = self.tracking_manager.get_position_data_for_animation()
                 self.ui_manager.force_animation_update(position_data)
-                printf("Plot force updated", LT.info)
+                printf("Plot force updated", ptype=LT.info)
             except Exception as e:
-                printf(f"Force plot update failed: {e}", LT.warning)
+                printf(f"Force plot update failed: {e}", ptype=LT.warning)
 
     def cleanup(self):
         """애플리케이션 정리"""
-        printf("=== Starting Application Cleanup ===", LT.info)
+        printf("=== Starting Application Cleanup ===", ptype=LT.info)
 
         try:
             # 1. 카메라 스레드 정지
             if self.camera_manager:
-                printf("Stopping camera threads...", LT.info)
+                printf("Stopping camera threads...", ptype=LT.info)
                 self.camera_manager.stop_cameras()
 
             # 2. UI 정리
             if self.ui_manager:
-                printf("Cleaning up UI components...", LT.info)
+                printf("Cleaning up UI components...", ptype=LT.info)
                 self.ui_manager.cleanup()
 
             # 3. OpenCV 창들 정리
@@ -344,7 +344,7 @@ class ApplicationController:
 
             # 4. 프로파일링 결과 저장
             if self.performance_manager:
-                printf("Saving profiling results...", LT.info)
+                printf("Saving profiling results...", ptype=LT.info)
                 self.performance_manager.stop_profiling()
                 self.performance_manager.save_profiling_results()
                 self.performance_manager.save_performance_report()
@@ -356,28 +356,28 @@ class ApplicationController:
             # 6. 최종 통계 출력
             self._print_final_statistics()
 
-            printf("=== Application cleanup completed successfully ===", LT.success)
+            printf("=== Application cleanup completed successfully ===", ptype=LT.success)
 
         except Exception as e:
-            printf(f"Cleanup error: {e}", LT.error)
+            printf(f"Cleanup error: {e}", ptype=LT.error)
 
     def _print_final_statistics(self):
         """최종 통계 출력"""
-        printf("=== Final System Statistics ===", LT.info)
-        printf(f"Total Runtime: {self.frame_count} frames processed", LT.info)
+        printf("=== Final System Statistics ===", ptype=LT.info)
+        printf(f"Total Runtime: {self.frame_count} frames processed", ptype=LT.info)
 
         if self.detection_manager:
             detection_stats = self.detection_manager.get_detection_statistics()
             success_rate = detection_stats.get('success_rate', 0)
-            printf(f"Detection Performance: {success_rate:.1f}% success rate", LT.info)
+            printf(f"Detection Performance: {success_rate:.1f}% success rate", ptype=LT.info)
 
         if self.tracking_manager:
             tracking_stats = self.tracking_manager.get_tracking_statistics()
             track_success = tracking_stats.get('success_rate', 0)
-            printf(f"Tracking Performance: {track_success:.1f}% triangulation success", LT.info)
+            printf(f"Tracking Performance: {track_success:.1f}% triangulation success", ptype=LT.info)
 
         if self.performance_manager:
             performance_report = self.performance_manager.get_performance_report()
             avg_fps = performance_report.get('avg_fps', 0)
             uptime = performance_report.get('uptime', 0)
-            printf(f"System Performance: {avg_fps:.1f} FPS average, {uptime:.1f}s uptime", LT.info)
+            printf(f"System Performance: {avg_fps:.1f} FPS average, {uptime:.1f}s uptime", ptype=LT.info)

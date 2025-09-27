@@ -45,7 +45,7 @@ def get_camera_properties(device_id: int) -> Dict[str, Any]:
             }
         cap.release()
     except Exception as e:
-        printf(f"Error getting camera properties for device {device_id}: {e}", LT.error)
+        printf(f"Error getting camera properties for device {device_id}: {e}", ptype=LT.error)
     
     return properties
 
