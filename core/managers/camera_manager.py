@@ -239,7 +239,7 @@ class CameraManager:
                         if frame_count % 300 == 0:
                             printf(f"Camera {cam_id}: {frame_count} frames, "
                                   f"avg FPS: {self.streams[cam_id].stats['avg_fps']:.1f}", 
-                                  LT.debug)
+                                  ptype=LT.debug)
                     else:
                         self.streams[cam_id].consecutive_failures += 1
                         if self.streams[cam_id].consecutive_failures > 30:
