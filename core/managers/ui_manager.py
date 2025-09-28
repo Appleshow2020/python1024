@@ -122,7 +122,7 @@ class UIManager:
         if self.animation_service:
             try:
                 self.animation_service.force_update(position_data)
-                printf("Animation force updated", ptype=LT.debug)
+                printf("Animation force updated", ptype=LT.info)
             except Exception as e:
                 printf(f"Force animation update error: {e}", ptype=LT.warning)
     

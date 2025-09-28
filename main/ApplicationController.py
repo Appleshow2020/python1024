@@ -409,7 +409,7 @@ class ApplicationController:
                 self.detection_manager.save_detection_profile("detection_profile.prof")
 
             # 6. 최종 통계 출력
-            self._print_final_statistics()
+            # self._print_final_statistics()
 
             printf("=== Application cleanup completed successfully ===", ptype=LT.success)
 

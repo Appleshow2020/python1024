@@ -285,8 +285,8 @@ class CameraManager:
         printf("Waiting for cameras...", ptype=LT.info)
         start_time = time.perf_counter()
         while (len(self.streams) < len(self.selected_cameras) and 
-               time.perf_counter() - start_time < 10.0):
-            time.sleep(0.1)
+               time.perf_counter() - start_time < 20.0):
+            time.sleep(0.2)
         
         active_cameras = sum(1 for s in self.streams.values() if s.cap is not None)
         printf(f"Active cameras: {active_cameras}", ptype=LT.info)
