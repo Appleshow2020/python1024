@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 from classes.printing import printf, LT
+from config.default_config import get_default_config
 
 try:
     import yaml
@@ -27,56 +28,8 @@ class ConfigManager:
         self._load_config()
     
     def _get_default_config(self) -> Dict[str, Any]:
-        """기본 설정값 반환"""
-        return {
-            'camera': {
-                'width': 640,
-                'height': 360,
-                'fps': 30,
-                'detection_interval': 3,
-                'buffer_size': 3,
-                'search_range': 10
-            },
-            'processing': {
-                'update_intervals': {
-                    'ui': 1.0,
-                    'animation': 0.5,
-                    'stats': 5.0
-                },
-                'position_history_size': 100,
-                'queue_size': 10
-            },
-            'detection': {
-                'hsv_lower': [0, 50, 50],
-                'hsv_upper': [15, 255, 255],
-                'min_contour_area': 30,
-                'morphology_kernel_size': 3,
-                'enable_gpu': False,
-                'model_path': 'ball_detection.onnx'
-            },
-            'display': {
-                'plot_size': [8, 6],
-                'max_plot_points': 10,
-                'circle_radius': 5,
-                'line_thickness': 2
-            },
-            'cameras': {
-                '1': {"position": [-0.47, -0.52, 0.19], "rotation": [-30, 45, -10]},
-                '2': {"position": [0.05, 0.05, 0.62], "rotation": [-90, 0, 100]},
-                '3': {"position": [0.61, 0.39, 0.19], "rotation": [-20, -120, 0]}
-            },
-            'logging': {
-                'level': 'INFO',
-                'file': 'ball_tracker.log',
-                'max_file_size': '10MB'
-            },
-            'profiling': {
-                'enabled': False,
-                'save_interval': 100,
-                'output_dir': 'profiles'
-            }
-        }
-    
+        return get_default_config()
+
     def _load_config(self):
         """설정 파일 로드"""
         default_config = self._get_default_config()
