@@ -1,14 +1,9 @@
 # utils/config.py
-"""
-설정 관리 모듈
-기존의 load_config 함수를 클래스 기반으로 리팩터링
-"""
-
 import json
 import os
 from pathlib import Path
 from typing import Dict, Any
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 from config.default_config import get_default_config
 
 try:

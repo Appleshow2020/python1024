@@ -6,7 +6,7 @@ import os
 from collections import deque
 from typing import Dict, Any, Optional
 
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 try:
     import psutil

@@ -4,12 +4,12 @@ import numpy as np
 from collections import deque
 from typing import Dict, List, Tuple, Optional, Any
 
-from classes.BallTracker3Dcopy import BallTracker3D
-from classes.CameraCalibration import CameraCalibration
+from core.managers.ball_tracker import BallTracker3D
+from core.services.camera_calibration import CameraCalibration
 from core.services.place_checker import PlaceCheckerService
 from core.models.field_zones import FieldZones
 from utils.geometry_utils import build_point_grid, make_field_zones
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 
 class TrackingManager:

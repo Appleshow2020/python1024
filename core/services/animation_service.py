@@ -1,9 +1,4 @@
 # core/services/animation_service.py
-"""
-애니메이션 서비스
-기존 AdvancedAnimationWrapper 클래스를 서비스로 분리
-"""
-
 import time
 import queue
 import numpy as np
@@ -12,8 +7,7 @@ from threading import Event
 from collections import deque
 from typing import Dict, Any, Optional
 
-from classes.printing import printf, LT
-
+from utils.printing import printf, LT
 
 class AnimationService:
     """고급 애니메이션 서비스 - GPU 가속 및 최적화 포함"""

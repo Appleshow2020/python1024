@@ -1,12 +1,8 @@
 # utils/camera_utils.py
-"""
-카메라 관련 유틸리티 함수들
-"""
-
 import cv2
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 
 def validate_camera_index(device_id: int, timeout: float = 2.0) -> bool:

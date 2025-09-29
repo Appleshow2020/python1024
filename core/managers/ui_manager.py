@@ -3,9 +3,9 @@ import time
 from typing import Dict, List, Optional, Any
 from collections import deque
 
-from classes.UserInterface import UserInterface
+from core.managers.user_interface import UserInterface
 from core.services.animation_service import AnimationService
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 
 class UIManager:

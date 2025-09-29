@@ -1,7 +1,7 @@
 # main/app.py
 import sys
 from main.ApplicationController import ApplicationController
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 def main():
     """메인 함수 - 애플리케이션 진입점"""

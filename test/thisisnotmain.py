@@ -8,8 +8,8 @@ import cv2 as cv
 from ultralytics import YOLO
 
 from classes.CameraCalibration import CameraCalibration
-from classes.Animation import Animation
-from classes.UserInterface import UserInterface
+from core.services.Animation import Animation
+from core.managers.user_interface import UserInterface
 from classes.BallTracker3D import BallTracker3D
 
 BALL_SIZE = 0

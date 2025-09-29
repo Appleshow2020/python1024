@@ -1,7 +1,7 @@
-from classes.Animation import Animation
+from core.services.Animation import Animation
 from classes.BallTracker3Dcopy import BallTracker3D
 from classes.CameraCalibration import CameraCalibration
-from classes.UserInterface import UserInterface
+from core.managers.user_interface import UserInterface
 import time
 import cv2
 import os

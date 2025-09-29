@@ -7,7 +7,7 @@ from collections import deque
 
 from core.services.ball_detector import BallDetectorService
 from core.managers.camera_manager import CameraManager
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 class DetectionManager:
     """
