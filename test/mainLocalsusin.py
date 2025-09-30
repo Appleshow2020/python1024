@@ -10,10 +10,10 @@ import glob
 import json
 import re
 
-from classes.Animation import Animation
+from core.services.Animation import Animation
 from classes.BallTracker3Dcopy import BallTracker3D as BallTracker3D
 from classes.CameraCalibration import CameraCalibration
-from classes.UserInterface import UserInterface
+from core.managers.user_interface import UserInterface
 from classes.CameraPOCalc import CameraPOCalc
 
 # =========================

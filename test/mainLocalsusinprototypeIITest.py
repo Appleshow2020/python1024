@@ -17,12 +17,12 @@ import logging.handlers
 from pathlib import Path
 import json  # JSON을 기본으로 사용
 
-from classes.Animation import Animation
+from core.services.Animation import Animation
 from classes.BallTracker3Dcopy import BallTracker3D as BallTracker3D
 from classes.CameraCalibration import CameraCalibration
-from classes.UserInterface import UserInterface
+from core.managers.user_interface import UserInterface
 from classes.CameraPOCalc import CameraPOCalc
-from classes.printing import *
+from utils.printing import *
 
 # YAML 모듈 선택적 import
 try:

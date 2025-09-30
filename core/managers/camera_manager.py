@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 
 from core.models.camera_stream import CamStream
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 
 class CameraManager:

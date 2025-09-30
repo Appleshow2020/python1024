@@ -1,9 +1,4 @@
 # core/services/place_checker.py
-"""
-볼 위치 체커 서비스
-기존 OptimizedBallPlaceChecker 클래스를 서비스로 분리
-"""
-
 from typing import Dict, Optional, Tuple, List
 from core.models.field_zones import FieldZones
 

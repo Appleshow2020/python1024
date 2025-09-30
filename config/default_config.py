@@ -10,7 +10,7 @@ def get_default_config() -> Dict[str, Any]:
             'fps': 30,
             'detection_interval': 3,
             'buffer_size': 3,
-            'search_range': 10,
+            'search_range': 20,
             'auto_exposure': 0.25,
             'enable_autofocus': False
         },

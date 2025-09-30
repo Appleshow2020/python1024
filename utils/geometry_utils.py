@@ -1,9 +1,4 @@
 # utils/geometry_utils.py
-"""
-기하학적 계산 유틸리티
-기존 build_point_grid_optimized, make_field_zones_optimized 함수들을 분리
-"""
-
 from typing import List, Tuple
 from core.models.field_zones import FieldZones
 

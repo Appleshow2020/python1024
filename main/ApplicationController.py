@@ -1,4 +1,4 @@
-from classes.printing import LT, printf
+from utils.printing import LT, printf
 from core.managers.camera_manager import CameraManager
 from core.managers.detection_manager import DetectionManager
 from core.managers.performance_manager import PerformanceManager

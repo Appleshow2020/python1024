@@ -1,8 +1,4 @@
 # core/services/ball_detector.py
-"""
-볼 검출 서비스 클래스
-기존 ProfiledBallDetector 클래스를 리팩터링하여 서비스로 분리
-"""
 
 import cv2
 import time
@@ -13,7 +9,7 @@ import os
 from collections import deque
 from typing import Dict, Tuple, Optional, Any
 
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 
 class BallDetectorService:

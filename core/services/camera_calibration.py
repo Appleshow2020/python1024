@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from classes.printing import *
+from utils.printing import *
 
 class CameraCalibration:
     """
