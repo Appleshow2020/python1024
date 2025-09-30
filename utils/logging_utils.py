@@ -3,17 +3,13 @@
 로깅 관리 유틸리티
 기존 setup_logging 함수를 클래스 기반으로 리팩터링
 """
-
 import logging
 import logging.handlers
 from pathlib import Path
 from typing import Dict, Any
 from classes.printing import printf, LT
 
-
 class LoggingManager:
-    """간단하고 안정적인 로깅 시스템"""
-    
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.log_config = config.get('logging', {})
