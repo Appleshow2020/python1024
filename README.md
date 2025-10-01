@@ -22,7 +22,7 @@
 | 카메라        | Raspberry Pi HQ Camera + 광각 6mm 렌즈 × 7대 |
 | 제어 보드     | Raspberry Pi 4 Model B (8GB) × 7대 |
 | 중앙 서버     | 고성능 데스크탑 |
-| 통신 방식     | Flask TCP 통신 |
+| 통신 방식     | Flask TCP 통신 / 유선 통신 |
 | 전원 공급     | PoE or 개별 전원 어댑터 |
 | 동기화 방식   | PTP(Time Protocol) or GPIO 신호 |
 
@@ -77,7 +77,63 @@
 
 ```bash
 python1024/
-├── README.md
-├── Multipose.py
-├── UserInterface.py
-└── main.py
+├── main/
+│   └── app.py
+├── classes/
+│   └── __init__.py
+│   └── Animation.py
+│   └── BallTracker3D.py
+│   └── BallTracker3Dcopy.py
+│   └── CameraCalibration.py
+│   └── CameraPOCalc.py
+│   └── Multipose.py
+│   └── NewUserInterface.py
+│   └── printing.py
+│   └── UserInterface.py
+├── core/
+│   ├── __init__.py
+│   ├── managers/
+│   │   ├── __init__.py
+│   │   ├── camera_manager.py
+│   │   ├── detection_manager.py
+│   │   ├── tracking_manager.py
+│   │   ├── ui_manager.py
+│   │   └── performance_manager.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── camera_stream.py
+│   │   ├── field_zones.py
+│   │   └── detection_result.py
+│   └── services/
+│       ├── __init__.py
+│       ├── ball_detector.py
+│       ├── animation_service.py
+│       ├── place_checker.py
+│       └── system_monitor.py
+├── utils/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── camera_utils.py
+│   ├── geometry_utils.py
+│   └── logging_utils.py
+├── config/
+│   ├── __init__.py
+│   └── default_config.py
+└── tests/
+    ├── asserttest.py
+    ├── ball_tracker.log
+    ├── BallTrackingTest.py
+    ├── camera_configs.txt
+    ├── camera_configstest.txt
+    ├── camera_configstest2.py
+    ├── camera_vision.test.py
+    ├── config.yaml
+    ├── find.py
+    ├── logtest.py
+    ├── mainLocalsusin.py
+    ├── mainLocalsusinprototypeIITest.py
+    ├── preset1.json
+    ├── preset2.json
+    ├── projectionmatrixprintingtest.py
+    ├── susin.py
+    └── thisisnotmain.py
