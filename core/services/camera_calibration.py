@@ -30,9 +30,9 @@ class CameraCalibration:
         fx,fy,cx,cy = args
         self.camera_configs = camera_configs
         self.K = self._default_intrinsic_matrix(fx,fy,cx,cy)
-        printf(f"Generating camera parameters...", ptype=LT.info)
+        printf(f"Generating camera parameters...", ptype=LT.info, useReset=False)
         self.camera_params = self._generate_camera_params()
-        print("completed. (7 parameters generated.)")
+        print("completed. (7 parameters generated.)", Colors.reset)
     def _default_intrinsic_matrix(self,fx,fy,cx,cy):
         return np.array([
             [fx,  0, cx],

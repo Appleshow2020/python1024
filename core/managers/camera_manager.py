@@ -129,14 +129,53 @@ class CameraManager:
             reverse=True
         )
         
-        selected = {}
+        selected_cameras: Dict[int, int] = {}
+        device_key = 0
         for idx, (device_idx, info) in enumerate(sorted_cameras[:camera_count]):
-            selected[idx] = device_idx
-            printf(f"Auto-selected Camera {idx} -> Device {device_idx} "
-                  f"({info['width']}x{info['height']})", ptype=LT.info)
-        
-        return selected
-    
+            if device_key >= camera_count:
+                break
+
+            try:
+                cap = cv2.VideoCapture(device_idx)
+                if not cap.isOpened():
+                    continue
+
+                print(f"\n=== Checking Camera {device_idx} ===")
+                print("Press 't' if correct, 'f' if incorrect, 'q' to quit")
+
+                frame_shown = False
+                while True:
+                    ret, frame = cap.read()
+                    if ret:
+                        frame_shown = True
+                        cv2.imshow(f"Camera {device_idx}", frame)
+                        key = cv2.waitKey(1) & 0xFF
+
+                        if key == ord('t'):
+                            selected_cameras[device_key] = device_idx
+                            printf(f"Selected Camera {idx} -> Device {device_idx} "
+                                   f"({info['width']}x{info['height']}", ptype=LT.info)
+                            device_key += 1
+                            break
+                        elif key == ord('f'):
+                            printf("Skipping camera.", ptype=LT.info)
+                            break
+                        elif key == ord('q'):
+                            break
+                    else:
+                        if not frame_shown:
+                            printf("Failed to grab frame from camera", ptype=LT.error)
+                            break
+                        time.sleep(0.01)
+
+                cap.release()
+                cv2.destroyAllWindows()
+
+            except Exception as e:
+                printf(f"An Error occured while processing camera {device_idx}: ", e, ptype=LT.error)
+
+        return selected_cameras
+
     def initialize_cameras(self, camera_count: int = None) -> bool:
         """카메라 초기화 및 선택"""
         if camera_count is None:

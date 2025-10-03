@@ -1,9 +1,4 @@
 # core/models/field_zones.py
-"""
-필드 존 데이터 모델
-기존 FieldZones 데이터클래스를 별도 모듈로 분리
-"""
-
 from dataclasses import dataclass
 from typing import Tuple
 
