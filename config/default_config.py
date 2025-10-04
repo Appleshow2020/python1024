@@ -104,7 +104,7 @@ def get_default_config() -> Dict[str, Any]:
         },
         'performance': {
             'enable_monitoring': True,
-            'stats_interval': 5.0,
+            'stats_interval': 3.0,
             'frame_time_history_size': 1000,
             'system_stats_history_size': 100,
             'fps_threshold': 15.0,
