@@ -66,6 +66,18 @@ class ApplicationController:
         self.config = self.config_manager.get_config()
         self.initialize_manager = InitializeManager()
 
+        self.KEY_QUIT        = ord('q')
+        self.KEY_STATS       = ord('s')
+        self.KEY_RESET       = ord('r')
+        self.KEY_DEBUG       = ord('d')
+        self.KEY_PLOT_UPDATE = ord('p')
+        
+        self.DEFAULT_FPS                     = self.config.get('camera', {}).get('fps', 30)
+        self.LOG_INTERVAL_SECONDS            = self.config.get('performance', {}).get('stats_interval', 3.0)
+        self.UI_UPDATE_FRAME_INTERVAL        = self.config.get('ui', {}).get('update_interval', 15)
+        self.FRAME_DROP_THRESHOLD_MULTIPLIER = self.config.get('performance', {}).get('frame_drop_threshold_multiplier', 2.0)
+        self.MIN_CAMERAS_FOR_TRACKING        = self.config.get('tracking', {}).get('min_cameras_for_tracking', 2)
+
         self.camera_manager = self.initialize_manager.camera_manager
         self.detection_manager = self.initialize_manager.detection_manager  
         self.tracking_manager = self.initialize_manager.tracking_manager
@@ -76,21 +88,8 @@ class ApplicationController:
         self.is_running = False
         self.frame_count = 0
 
-        
         self._setup_signal_handlers()
         
-        self.KEY_QUIT        = ord('q')
-        self.KEY_STATS       = ord('s')
-        self.KEY_RESET       = ord('r')
-        self.KEY_DEBUG       = ord('d')
-        self.KEY_PLOT_UPDATE = ord('p')
-
-        self.DEFAULT_FPS                     = self.config.get('camera', {}).get('fps', 30)
-        self.LOG_INTERVAL_SECONDS            = self.config.get('performance', {}).get('stats_interval', 3.0)
-        self.UI_UPDATE_FRAME_INTERVAL        = self.config.get('ui', {}).get('update_interval', 15)
-        self.FRAME_DROP_THRESHOLD_MULTIPLIER = self.config.get('performance', {}).get('frame_drop_threshold_multiplier', 2.0)
-        self.MIN_CAMERAS_FOR_TRACKING        = self.config.get('tracking', {}).get('min_cameras_for_tracking', 2)
-
         printf("Application Controller initialized", ptype=LT.info)
 
     def _setup_signal_handlers(self):
@@ -142,10 +141,9 @@ class ApplicationController:
 
                 tracking_result = self._process_frame_pipeline(loop_start)
 
-                current_time = time.perf_counter()
-                if self._should_log(last_log_time, current_time):
+                if self._should_log(last_log_time):
                     self._log_periodic_status(tracking_result)
-                    last_log_time = current_time
+                    last_log_time = time.perf_counter()
 
                 self._control_frame_rate(loop_start, frame_interval)
 
@@ -181,9 +179,9 @@ class ApplicationController:
 
         return tracking_result
     
-    def _should_log(self, last_log_time: float, current_time: float) -> bool:
+    def _should_log(self, last_log_time: float) -> bool:
         """주기적 상태 로깅 여부 결정"""
-        return (current_time - last_log_time) >= self.LOG_INTERVAL_SECONDS
+        return (time.perf_counter() - last_log_time) >= self.LOG_INTERVAL_SECONDS
     
     def _print_controls(self):
         """컨트롤 안내 출력"""
@@ -238,7 +236,7 @@ class ApplicationController:
             self._update_referee_ui(tracking_result)
 
             # 애니메이션 프로세싱 (메인 스레드에서)
-            self._update_animation_periodically()
+            self._update_animation_if_needed()
 
         except Exception as e:
             printf(f"UI update error: {e}", ptype=LT.warning)
@@ -253,8 +251,8 @@ class ApplicationController:
         position_data = self.tracking_manager.get_position_data_for_animation()
         self.ui_manager.update_animation(position_data)
 
-    def _update_animation_periodically(self):
-        if self.frame_count % 15 == 0:
+    def _update_animation_if_needed(self):
+        if self.frame_count % self.UI_UPDATE_FRAME_INTERVAL == 0:
             self.ui_manager.process_animation_updates()
 
     def _handle_user_input(self) -> bool:
@@ -273,23 +271,6 @@ class ApplicationController:
         handler = key_handlers.get(key, None)
         if handler:
             return handler() if handler == self._handle_quit else (handler() or True)
-        
-        # if key == self.KEY_QUIT:
-        #     printf("Quit requested by user", ptype=LT.info)
-        #     self.is_running = False
-        #     return False
-
-        # elif key == self.KEY_STATS:
-        #     self._show_detailed_statistics()
-
-        # elif key == self.KEY_RESET:
-        #     self._reset_all_data()
-
-        # elif key == self.KEY_DEBUG:
-        #     self._show_debug_information()
-
-        # elif key == self.KEY_PLOT_UPDATE:
-        #     self._force_plot_update()
 
         return True
     
@@ -357,14 +338,13 @@ class ApplicationController:
               f"Memory: {perf_stats.get('avg_memory_mb', 0):.1f}MB", ptype=LT.info)
             
     def _reset_all_data(self):
-        """모든 데이터 및 통계 리셋"""
         printf("Resetting all statistics and data...", ptype=LT.info)
 
-        if not (self.detection_manager or self.tracking_manager):
-            return
-        
-        self.detection_manager.reset_statistics()
-        self.tracking_manager.reset_tracking_data()
+        if self.detection_manager:
+            self.detection_manager.reset_statistics()
+
+        if self.tracking_manager:
+            self.tracking_manager.reset_tracking_data()
 
         self.frame_count = 0
         printf("All data reset completed", ptype=LT.success)
@@ -402,18 +382,12 @@ class ApplicationController:
             self._cleanup_ui()
             self._cleanup_opencv_windows()
             self._save_profiling_data()
-
-            # 5. 검출기 프로파일 저장
-
-
-            self._print_final_statistics()
-
             printf("=== Application cleanup completed successfully ===", ptype=LT.success)
 
         except Exception as e:
             printf(f"Cleanup error: {e}", ptype=LT.error)
-
-        self._print_final_statistics()
+        finally:
+            self._print_final_statistics()  # 항상 실행되도록
 
     def _print_final_statistics(self):
         self._print_runtime_summary()
