@@ -7,59 +7,6 @@ import time
 import traceback
 
 class ApplicationController:
-    """
-    ApplicationController
-    ---------------------
-    Main controller for the advanced ball tracking system. Responsible for initializing, running, and managing the application's core components, including camera, detection, tracking, UI, and performance managers. Handles application lifecycle, user input, signal handling, and system cleanup.
-    Attributes:
-        config_manager (ConfigManager): Manages application configuration.
-        config (dict): Loaded configuration settings.
-        camera_manager (Optional[CameraManager]): Handles camera operations.
-        detection_manager (Optional[DetectionManager]): Handles ball detection logic.
-        tracking_manager (Optional[TrackingManager]): Handles 3D tracking logic.
-        ui_manager (Optional[UIManager]): Manages user interface updates.
-        performance_manager (Optional[PerformanceManager]): Monitors and reports system performance.
-        is_running (bool): Application running state.
-        frame_count (int): Number of processed frames.
-    Methods:
-        __init__():
-            Initializes the ApplicationController and sets up signal handlers.
-        _signal_handler(signum, frame):
-            Handles system signals for graceful shutdown.
-        initialize() -> bool:
-            Initializes all core components and prepares the application for execution.
-        run() -> bool:
-            Runs the main application loop after initialization.
-        _main_loop() -> bool:
-            Main processing loop for frame acquisition, detection, tracking, UI updates, and user input.
-        _print_controls():
-            Prints available user controls to the console.
-        _update_performance_monitoring(loop_start: float):
-            Updates performance statistics for the current frame.
-        _perform_ball_detection() -> tuple:
-            Performs ball detection on the current frame.
-        _perform_3d_tracking(pts_2d: list, cam_ids: list):
-            Performs 3D tracking using detected 2D points and camera IDs.
-        _update_user_interfaces(tracking_result):
-            Updates UI components based on tracking results.
-        _handle_user_input() -> bool:
-            Handles user keyboard input for application control.
-        _log_periodic_status(tracking_result):
-            Logs periodic status updates, including ball position and confidence.
-        _control_frame_rate(loop_start: float, frame_interval: float):
-            Controls the frame rate to match the target FPS.
-        _show_detailed_statistics():
-            Displays detailed statistics for detection, tracking, UI, and performance.
-        _reset_all_data():
-            Resets all statistics and tracking data.
-        _show_debug_information():
-            Displays debug information for cameras and application state.
-        _force_plot_update():
-            Forces an update of the UI plot/animation.
-        cleanup():
-            Cleans up all resources, stops threads, saves profiling data, and prints final statistics.
-    """
-    
     def __init__(self):
         # 설정 관리
         self.config_manager = ConfigManager()
