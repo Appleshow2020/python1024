@@ -65,6 +65,7 @@ class CameraManager:
         self.target_fps = self.camera_config['fps']
         self.buffer_size = self.camera_config['buffer_size']
         self.search_range = self.camera_config['search_range']
+        self.camera_wait_interval = self.camera_config.get('wait_interval', 0.2)  # 카메라 준비 대기 간격(초), 기본값 0.2
         
         # 카메라 스트림들
         self.streams: Dict[int, CamStream] = {}
@@ -154,7 +155,7 @@ class CameraManager:
                         if key == ord('t'):
                             selected_cameras[device_key] = device_idx
                             printf(f"Selected Camera {idx} -> Device {device_idx} "
-                                   f"({info['width']}x{info['height']}", ptype=LT.info)
+                                   f"({info['width']}x{info['height']})", ptype=LT.info)
                             device_key += 1
                             break
                         elif key == ord('f'):
@@ -207,9 +208,10 @@ class CameraManager:
             (cv2.CAP_PROP_FRAME_WIDTH, self.frame_width),
             (cv2.CAP_PROP_FRAME_HEIGHT, self.frame_height),
             (cv2.CAP_PROP_FPS, self.target_fps),
-            (cv2.CAP_PROP_BUFFERSIZE, 1),
+            # CAP_PROP_BUFFERSIZE is not supported by all backends (may be ignored or cause warnings)
+            (cv2.CAP_PROP_AUTOFOCUS, 0),  # 자동 포커스 비활성화 (일부 카메라에서 지원되지 않을 수 있음)
             (cv2.CAP_PROP_AUTOFOCUS, 0),  # 자동 포커스 비활성화
-            (cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # 자동 노출 제한
+            (cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # 자동 노출 제한 (0.25는 OpenCV 백엔드마다 의미가 다를 수 있음, 예: 0.25=수동, 0.75=자동)
         ]
         
         success_count = 0
@@ -325,7 +327,7 @@ class CameraManager:
         start_time = time.perf_counter()
         while (len(self.streams) < len(self.selected_cameras) and 
                time.perf_counter() - start_time < 20.0):
-            time.sleep(0.2)
+            time.sleep(self.camera_wait_interval)
         
         active_cameras = sum(1 for s in self.streams.values() if s.cap is not None)
         printf(f"Active cameras: {active_cameras}", ptype=LT.info)
