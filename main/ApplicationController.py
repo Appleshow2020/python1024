@@ -120,12 +120,24 @@ class ApplicationController:
     
     def _process_frame_pipeline(self, loop_start: float):
         self._update_performance_monitoring(loop_start)
-        pts_2d, cam_ids = self._perform_ball_detection()
+        pts_2d, cam_ids, frame = self._perform_ball_detection()
         tracking_result = self._perform_3d_tracking(pts_2d, cam_ids)
         self._update_user_interfaces(tracking_result)
-
+        self._save_frame_and_record(cam_ids[0], frame) if cam_ids else None
+        self._delete_old_images()
+        
         return tracking_result
     
+    def _save_frame_and_record(self, camera_id, frame):
+        if not self.initialize_manager.image_manager:
+            return
+        self.initialize_manager.image_manager.save_frame_and_record(camera_id, frame)
+
+    def _delete_old_images(self):
+        if not self.initialize_manager.image_manager:
+            return
+        self.initialize_manager.image_manager.delete_old_images()
+
     def _should_log(self, last_log_time: float) -> bool:
         """주기적 상태 로깅 여부 결정"""
         return (time.perf_counter() - last_log_time) >= self.LOG_INTERVAL_SECONDS

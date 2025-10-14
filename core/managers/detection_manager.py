@@ -96,7 +96,7 @@ class DetectionManager:
         self.circle_radius = self.display_config['circle_radius']
         self.line_thickness = self.display_config['line_thickness']
     
-    def process_frame_detections(self) -> Tuple[List[Tuple[int, int]], List[int]]:
+    def process_frame_detections(self) -> Tuple[List[Tuple[int, int]], List[int], Dict[int, np.ndarray]]:
         """프레임 검출 처리"""
         self.frame_count += 1
         
@@ -107,7 +107,7 @@ class DetectionManager:
         pts_2d, cam_ids = self._process_camera_frames(snapshot)
         
         self.stats.add_total(len(snapshot))
-        return pts_2d, cam_ids
+        return pts_2d, cam_ids, snapshot
     
     def _process_camera_frames(
         self, 

@@ -11,6 +11,7 @@ from threading import Thread, Lock
 from collections import deque
 from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
+import sqlite3
 
 from core.models.camera_stream import CamStream
 from utils.printing import printf, LT
@@ -195,6 +196,7 @@ class CameraManager:
         # 카메라 선택
         self.selected_cameras = self.select_cameras(available_cameras, camera_count)
         
+
         if not self.selected_cameras:
             printf("No cameras selected", ptype=LT.error)
             return False
