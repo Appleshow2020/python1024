@@ -4,6 +4,7 @@ from core.managers.camera_manager import CameraManager
 from core.managers.tracking_manager import TrackingManager
 from core.managers.detection_manager import DetectionManager
 from core.managers.ui_manager import UIManager
+from core.managers.image_manager import ImageManager
 from utils.config import ConfigManager
 from utils.printing import printf, LT
 
@@ -60,4 +61,10 @@ class InitializeManager:
         printf("Initializing UI manager...", ptype=LT.info)
         self.ui_manager = UIManager(self.config)
         printf("=== All components initialized successfully ===", ptype=LT.success)
+        return True
+    
+    def initialize_image_manager(self) -> bool:
+        printf("Initializing image manager...", ptype=LT.info)
+        self.image_manager = ImageManager()
+        self.image_manager.init_db()
         return True
