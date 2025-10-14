@@ -3,4 +3,3 @@ __pycache__
 *.pyc
 .vscode
 performance_report_*.json
-test
