@@ -5,6 +5,7 @@ import cv2
 import signal
 import time
 import traceback
+import datetime
 
 class ApplicationController:
     def __init__(self):
@@ -122,11 +123,26 @@ class ApplicationController:
         self._update_performance_monitoring(loop_start)
         pts_2d, cam_ids, frame = self._perform_ball_detection()
         tracking_result = self._perform_3d_tracking(pts_2d, cam_ids)
+        self._save_tracking_data(tracking_result)
         self._update_user_interfaces(tracking_result)
         self._save_frame_and_record(cam_ids[0], frame) if cam_ids else None
         self._delete_old_images()
         
         return tracking_result
+    
+    def _save_tracking_data(self, tracking_result):
+        if not (self.initialize_manager.data_manager and tracking_result):
+            return
+        tracking_result_return = {
+            'timestamp': tracking_result.get('position_entry', {}).get('timestamp', datetime.datetime.now()),
+            'position': tracking_result.get('position_3d', (0,0,0)),
+            'velocity': tracking_result.get('position_entry', {}).get('velocity', (0,0,0)),
+            'direction': tracking_result.get('position_entry', {}).get('direction', (0,0,0)),
+            'zone_info': tracking_result.get('zone_info', ''),
+            'detection_count': tracking_result.get('detection_count', 0)
+        }
+        
+        self.initialize_manager.data_manager.save_tracking_data(tracking_result_return)
     
     def _save_frame_and_record(self, camera_id, frame):
         if not self.initialize_manager.image_manager:
@@ -138,6 +154,11 @@ class ApplicationController:
             return
         self.initialize_manager.image_manager.delete_old_images()
 
+    def _save_tracking_data(self, tracking_result):
+        if not (self.initialize_manager.data_manager and tracking_result):
+            return
+        self.initialize_manager.data_manager.save_tracking_data(tracking_result)
+    
     def _should_log(self, last_log_time: float) -> bool:
         """주기적 상태 로깅 여부 결정"""
         return (time.perf_counter() - last_log_time) >= self.LOG_INTERVAL_SECONDS
@@ -165,15 +186,15 @@ class ApplicationController:
     def _perform_ball_detection(self) -> tuple:
         """볼 검출 수행"""
         if not self.detection_manager:
-            return [], []
+            return [], [], []
 
         try:
             return self.detection_manager.process_frame_detections()
         except Exception as e:
             printf(f"Ball detection error: {e}", ptype=LT.error)
-            return [], []
+            return [], [], []
 
-    def _perform_3d_tracking(self, pts_2d: list, cam_ids: list):
+    def _perform_3d_tracking(self, pts_2d: list, cam_ids: list) -> dict | None:
         """3D 트래킹 수행"""
         if not self.tracking_manager or len(pts_2d) < self.MIN_CAMERAS_FOR_TRACKING:
             return None
