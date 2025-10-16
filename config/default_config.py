@@ -25,7 +25,8 @@ def get_default_config() -> Dict[str, Any]:
             'frame_skip_threshold': 2.0,
             'max_processing_time_ms': 50.0,
             'image_dir': 'C:\\Users\\zzuns\\Desktop\\Python1024\\python1024\\images',
-            'db_dir': 'C:\\Users\\zzuns\\Desktop\\Python1024\\python1024\\db\\images.db',
+            'image_db_dir': 'C:\\Users\\zzuns\\Desktop\\Python1024\\python1024\\db\\images.db',
+            'db_dir': 'C:\\Users\\zzuns\\Desktop\\Python1024\\python1024\\db\\data.db',
             'image_retention_minutes': 5,
             'get_latest_image_paths_threshold': 1
         },

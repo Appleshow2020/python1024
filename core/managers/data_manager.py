@@ -7,9 +7,10 @@ import sqlite3
 
 class DataManager:
     def __init__(self):
-        self.DB_DIR = ConfigManager.get_config().get("processing", None).get("data_db_dir", None)
+        self.config = ConfigManager().get_config()
+        self.DB_DIR = self.config.get("processing", None).get("db_dir", None)
         if self.DB_DIR is None:
-            self.DB_DIR = "C:\\Users\\zzuns\\Desktop\\Python1024\\python1024\\db\\data.db"
+            self.DB_DIR = "C:\\Users\\User\\Desktop\\Python1024\\python1024\\db\\data.db"
             printf("Data DB directory not configured properly, Using default directory:", 
                    f"DB_DIR : {self.DB_DIR}", ptype=LT.warning)
 
