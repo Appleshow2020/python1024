@@ -35,7 +35,7 @@ class ImageManager:
         """)
         conn.commit()
         conn.close()
-        printf("Database initialized at ", self.DB_DIR, ptype=LT.info)
+        printf("Image Database initialized at ", self.DB_DIR, ptype=LT.info)
     
     def save_frame_and_record(self, camera_id, frame):
         timestamp = datetime.datetime.utcnow()

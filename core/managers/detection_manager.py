@@ -102,7 +102,7 @@ class DetectionManager:
         
         snapshot = self.camera_manager.get_frame_snapshot()
         if not snapshot:
-            return [], []
+            return [], [], []
         
         pts_2d, cam_ids = self._process_camera_frames(snapshot)
         

@@ -143,7 +143,7 @@ class TrackingManager:
                     # Add to position history
                     position_entry = {
                         'timestamp': timestamp,
-                        'position': tuple(state['position']),
+                        'position': tuple(state.get('position', (0, 0, 0))),
                         'velocity': tuple(state.get('velocity', (0, 0, 0))),
                         'direction': tuple(state.get('direction', (0, 0, 0))),
                         'confidence': len(pts_2d) / 3.0,  # Based on max 3 cameras
