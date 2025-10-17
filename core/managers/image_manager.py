@@ -13,14 +13,40 @@ from utils.printing import printf, LT
 class ImageManager:
     
     def __init__(self):
-        self.IMAGE_DIR = ConfigManager.get_config().get("processing", None).get("image_dir", None)
-        self.DB_DIR = ConfigManager.get_config().get("processing", None).get("db_dir", None)
+        self.config = ConfigManager().get_config()
+        self.IMAGE_DIR = self.config.get("processing", None).get("image_dir", None)
+        self.DB_DIR = self.config.get("processing", None).get("image_db_dir", None)
         if self.IMAGE_DIR is None or self.DB_DIR is None:
-            self.IMAGE_DIR = "C:\\Users\\zzuns\\Desktop\\Python1024\\python1024\\images"
-            self.DB_DIR = "C:\\Users\\zzuns\\Desktop\\Python1024\\python1024\\db\\images.db"
+            self.IMAGE_DIR = "C:\\Users\\User\\Desktop\\Python1024\\python1024\\images"
+            self.DB_DIR = "C:\\Users\\User\\Desktop\\Python1024\\python1024\\db\\images.db"
             printf("Image directory or DB directory not configured properly, Using default directory:", 
                    f"IMAGE_DIR : {self.IMAGE_DIR}", 
                    f"DB_DIR : {self.DB_DIR}", ptype=LT.warning, sep = '\n')
+        
+        image_folder = os.path.dirname(self.IMAGE_DIR)
+        if not os.path.exists(image_folder):
+            os.makedirs(image_folder, exist_ok=True)
+            printf("Image directory created:", image_folder, ptype=LT.info)
+            time.sleep(0.1)
+        
+        if not os.path.exists(self.IMAGE_DIR):
+            os.makedirs(self.IMAGE_DIR, exist_ok=True)
+            printf("Image directory created:", self.IMAGE_DIR, ptype=LT.info)
+            time.sleep(0.1)
+        else:
+            printf("Using existing image directory:", self.IMAGE_DIR, ptype=LT.info)
+        
+        db_folder = os.path.dirname(self.DB_DIR)
+        if not os.path.exists(db_folder):
+            os.makedirs(db_folder, exist_ok=True)
+            printf("Image DB directory created:", db_folder, ptype=LT.info)
+            time.sleep(0.1)
+            
+        if not os.path.exists(self.DB_DIR):
+            printf("Image DB file not found. Creating new database file at:", self.DB_DIR, ptype=LT.info)
+            self.init_db()
+        else:
+            printf("Using existing database:", self.DB_DIR, ptype=LT.info)
 
     def init_db(self):
         conn = sqlite3.connect(self.DB_DIR)
@@ -56,7 +82,7 @@ class ImageManager:
     
     def get_lastest_image_path(self, camera_id, threshold: int | None):
         if threshold is None or threshold <= 0:
-            threshold = ConfigManager.get_config().get("processing", None).get("get_latest_image_paths_threshold", 5)
+            threshold = self.config.get("processing", None).get("get_latest_image_paths_threshold", 5)
         conn = sqlite3.connect(self.DB_DIR)
         cursor = conn.cursor()
         cursor.execute(
@@ -70,7 +96,7 @@ class ImageManager:
         return result[0]
     
     def delete_old_images(self, time_minutes = 5):
-        time_minutes = max(ConfigManager.get_config().get("processing", None).get("image_retention_minutes", 5), time_minutes)
+        time_minutes = max(self.config.get("processing", None).get("image_retention_minutes", 5), time_minutes)
         cutoff_time = time.time() - time_minutes * 60  # 5 minutes in seconds
 
         conn = sqlite3.connect(self.DB_DIR)

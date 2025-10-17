@@ -7,12 +7,25 @@ import sqlite3
 
 class DataManager:
     def __init__(self):
-        self.DB_DIR = ConfigManager.get_config().get("processing", None).get("data_db_dir", None)
+        self.config = ConfigManager().get_config()
+        self.DB_DIR = self.config.get("processing", None).get("db_dir", None)
         if self.DB_DIR is None:
-            self.DB_DIR = "C:\\Users\\zzuns\\Desktop\\Python1024\\python1024\\db\\data.db"
+            self.DB_DIR = "C:\\Users\\User\\Desktop\\Python1024\\python1024\\db\\data.db"
             printf("Data DB directory not configured properly, Using default directory:", 
                    f"DB_DIR : {self.DB_DIR}", ptype=LT.warning)
 
+        db_folder = os.path.dirname(self.DB_DIR)
+        if not os.path.exists(db_folder):
+            os.makedirs(db_folder, exist_ok=True)
+            printf("DB directory created:", db_folder, ptype=LT.info)
+            time.sleep(0.1)
+            
+        if not os.path.exists(self.DB_DIR):
+            printf("DB file not found. Creating new database file at:", self.DB_DIR, ptype=LT.info)
+            self.init_db()
+        else:
+            printf("Using existing database:", self.DB_DIR, ptype=LT.info)
+            
     def init_db(self):
         conn = sqlite3.connect(self.DB_DIR)
         cursor = conn.cursor()
