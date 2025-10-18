@@ -26,12 +26,20 @@ def printf(*text:object,**kwargs):
     end:str|None = kwargs.get('end', '\n')  
     sep:str|None = kwargs.get('sep', ' ')
     useReset:bool|None = kwargs.get('useReset', True)
+    simulation:bool|None = kwargs.get('simulation', False)
 
     def now2() -> str:
         return time.strftime("%X")
     
     color = getattr(Colors, ptype.value, Colors.reset)
+    # toPrint = f"{color}[{now2()}] [{ptype.name}] " + sep.join(map(str, text))///
+    toPrint = ""
+    toPrint += f"{color}[{now2()}]"
+    toPrint += f" [SIMULATION] " if simulation else ""
+    toPrint += f" [{ptype.name}] "
+    toPrint += sep.join(map(str, text))
+    
     if useReset:
-        print(f"{color}[{now2()}]", f"[{ptype.name}]", *text, Colors.reset, end=end, sep=sep)
+        print(toPrint, Colors.reset, end=end)
     else:
-        print(f"{color}[{now2()}]", f"[{ptype.name}]", end=end, sep=sep)
+        print(toPrint, end=end)
