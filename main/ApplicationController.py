@@ -31,6 +31,8 @@ class ApplicationController:
         self.tracking_manager = self.initialize_manager.tracking_manager
         self.ui_manager = self.initialize_manager.ui_manager
         self.performance_manager = self.initialize_manager.performance_manager
+        self.image_manager = self.initialize_manager.image_manager
+        self.data_manager = self.initialize_manager.data_manager
 
         # 애플리케이션 상태
         self.is_running = False
@@ -59,7 +61,11 @@ class ApplicationController:
             and self.initialize_manager.initialize_camera_manager()
             and self.initialize_manager.initialize_tracking_manager()
             and self.initialize_manager.initialize_detection_manager()
-            and self.initialize_manager.initialize_ui_manager())
+            and self.initialize_manager.initialize_ui_manager()
+            and self.initialize_manager.initialize_image_manager()
+            and self.initialize_manager.initialize_data_manager()
+            )
+        
         except Exception as e:
             printf(f"Initialization failed: {e}", ptype=LT.error)
             traceback.print_exc()
@@ -128,6 +134,7 @@ class ApplicationController:
         self._save_frame_and_record(cam_ids[0], frame) if cam_ids else None
         self._delete_old_images()
         
+
         return tracking_result
     
     def _save_tracking_data(self, tracking_result):
@@ -142,22 +149,22 @@ class ApplicationController:
             'detection_count': tracking_result.get('detection_count', 0)
         }
         
-        self.initialize_manager.data_manager.save_tracking_data(tracking_result_return)
-    
+        self.data_manager.save_tracking_data(tracking_result_return)
+
     def _save_frame_and_record(self, camera_id, frame):
-        if not self.initialize_manager.image_manager:
+        if not self.image_manager:
             return
-        self.initialize_manager.image_manager.save_frame_and_record(camera_id, frame)
+        self.image_manager.save_frame_and_record(camera_id, frame)
 
     def _delete_old_images(self):
-        if not self.initialize_manager.image_manager:
+        if not self.image_manager:
             return
-        self.initialize_manager.image_manager.delete_old_images()
+        self.image_manager.delete_old_images()
 
     def _save_tracking_data(self, tracking_result):
-        if not (self.initialize_manager.data_manager and tracking_result):
+        if not (self.data_manager and tracking_result):
             return
-        self.initialize_manager.data_manager.save_tracking_data(tracking_result)
+        self.data_manager.save_tracking_data(tracking_result)
     
     def _should_log(self, last_log_time: float) -> bool:
         """주기적 상태 로깅 여부 결정"""
