@@ -6,6 +6,7 @@ from core.managers.detection_manager import DetectionManager
 from core.managers.ui_manager import UIManager
 from core.managers.image_manager import ImageManager
 from core.managers.data_manager import DataManager
+from core.services.sensor_controller import SensorController
 from utils.config import ConfigManager
 from utils.printing import printf, LT
 
@@ -18,6 +19,8 @@ class InitializeManager:
         self.ui_manager: Optional[UIManager] = None
         self.image_manager: Optional[ImageManager] = None
         self.data_manager: Optional[DataManager] = None
+        
+        self.sensor_controller: Optional[SensorController] = None
         
         self.config_manager = ConfigManager()
         self.config = self.config_manager.get_config()
@@ -77,4 +80,9 @@ class InitializeManager:
         printf("Initializing data manager...", ptype=LT.info)
         self.data_manager = DataManager()
         self.data_manager.init_db()
+        return True
+    
+    def initialize_sensor_controller(self) -> bool:
+        printf("Initializing sensor controller...", ptype=LT.info)
+        self.sensor_controller = SensorController()
         return True

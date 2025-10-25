@@ -33,6 +33,8 @@ class ApplicationController:
         self.performance_manager = self.initialize_manager.performance_manager
         self.image_manager = self.initialize_manager.image_manager
         self.data_manager = self.initialize_manager.data_manager
+        
+        self.sensor_controller = self.initialize_manager.sensor_controller
 
         # 애플리케이션 상태
         self.is_running = False
@@ -64,6 +66,7 @@ class ApplicationController:
             and self.initialize_manager.initialize_ui_manager()
             and self.initialize_manager.initialize_image_manager()
             and self.initialize_manager.initialize_data_manager()
+            and self.initialize_manager.initialize_sensor_controller()
             )
         
         except Exception as e:
@@ -133,12 +136,20 @@ class ApplicationController:
         self._update_user_interfaces(tracking_result)
         self._save_frame_and_record(cam_ids[0], frame) if cam_ids else None
         self._delete_old_images()
-        
 
         return tracking_result
-    
+
+    def _initialize_sensor_controller(self):
+        self.sensor_controller = self.sensor_controller
+        for cam_config in self.sensors_config:
+            self.sensor_controller.add_sensor(
+                cam_config['id'],
+                cam_config['ip'],
+                cam_config['port']
+            )   
+
     def _save_tracking_data(self, tracking_result):
-        if not (self.initialize_manager.data_manager and tracking_result):
+        if not (self.data_manager and tracking_result):
             return
         tracking_result_return = {
             'timestamp': tracking_result.get('position_entry', {}).get('timestamp', datetime.datetime.now()),

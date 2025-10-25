@@ -6,19 +6,12 @@ from utils.printing import printf, LT
 from core.models.camera_status import CameraStatus
 from core.models.gyro_data import GyroData
 from test2.camera_gyro_receiver import CameraGyroReceiver
+from config.default_config import ConfigManager
 
-class CentralGyroController:
-    """
-    중앙 처리 장치 - 모든 카메라의 자이로 데이터를 관리하고 자세를 제어
-    """
+class SensorController:
     
-    def __init__(self, config_file='camera_gyro_config.yaml'):
-        """
-        Args:
-            config_file: 카메라 설정 파일
-        """
-        self.config_file = config_file
-        self.config = self.load_config()
+    def __init__(self):
+        self.config = ConfigManager.get_default_config().get('sensor_controller', self._get_default_config())
         self.receivers: Dict[str, CameraGyroReceiver] = {}
         self.camera_status: Dict[str, CameraStatus] = {}
         self.monitoring = False
@@ -28,20 +21,6 @@ class CentralGyroController:
         self.tolerance = self.config.get('tolerance', 2.0)
         self.check_interval = self.config.get('check_interval', 1.0)
         self.auto_adjust = self.config.get('auto_adjust', True)
-        
-    def load_config(self) -> dict:
-        """설정 파일 로드"""
-        try:
-            with open(self.config_file, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-                printf(f"설정 로드 완료: {self.config_file}", ptype=LT.info)
-                return config
-        except FileNotFoundError:
-            printf(f"설정 파일 없음: {self.config_file}, 기본값 사용", ptype=LT.warning)
-            return self._get_default_config()
-        except Exception as e:
-            printf(f"설정 로드 실패: {e}", ptype=LT.error)
-            return self._get_default_config()
     
     def _get_default_config(self) -> dict:
         """기본 설정"""
@@ -52,15 +31,6 @@ class CentralGyroController:
             'cameras': {}
         }
     
-    def save_config(self):
-        """현재 설정 저장"""
-        try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                yaml.dump(self.config, f, default_flow_style=False, allow_unicode=True)
-            printf(f"설정 저장 완료: {self.config_file}", ptype=LT.info)
-        except Exception as e:
-            printf(f"설정 저장 실패: {e}", ptype=LT.error)
-
     def add_camera(self, camera_id: str, ip_address: str, port: int,
                    reference_orientation: Optional[Dict[str, float]] = None):
         """
@@ -111,12 +81,6 @@ class CentralGyroController:
             printf(f"[{camera_id}] 카메라 제거", ptype=LT.info)
     
     def check_camera_orientation(self, camera_id: str) -> Optional[dict]:
-        """
-        카메라의 현재 자세 확인 및 조정 필요 여부 판단
-        
-        Returns:
-            dict: {'needs_adjustment': bool, 'errors': dict, 'current': dict, 'reference': dict}
-        """
         if camera_id not in self.receivers or camera_id not in self.camera_status:
             return None
         
@@ -170,16 +134,6 @@ class CentralGyroController:
         }
     
     def adjust_camera(self, camera_id: str, gain=0.5) -> bool:
-        """
-        카메라 자세 조정 명령 전송
-        
-        Args:
-            camera_id: 카메라 ID
-            gain: 제어 게인 (0.0 ~ 1.0)
-        
-        Returns:
-            bool: 명령 전송 성공 여부
-        """
         check_result = self.check_camera_orientation(camera_id)
         
         if check_result is None or not check_result['needs_adjustment']:
@@ -209,14 +163,6 @@ class CentralGyroController:
     
     def set_reference_orientation(self, camera_id: str, use_current=True,
                                    orientation: Optional[Dict[str, float]] = None):
-        """
-        기준 자세 설정
-        
-        Args:
-            camera_id: 카메라 ID
-            use_current: True면 현재 자세를 기준으로 설정
-            orientation: 직접 지정할 기준 자세
-        """
         if camera_id not in self.camera_status:
             printf(f"[{camera_id}] 카메라를 찾을 수 없음", ptype=LT.error)
             return False
@@ -258,7 +204,6 @@ class CentralGyroController:
         return True
     
     def start_monitoring(self):
-        """모든 카메라 자동 모니터링 시작"""
         if self.monitoring:
             printf("이미 모니터링 중", ptype=LT.warning)
             return
@@ -269,14 +214,12 @@ class CentralGyroController:
         printf("자동 모니터링 시작", ptype=LT.info)
     
     def stop_monitoring(self):
-        """모니터링 중지"""
         self.monitoring = False
         if self.monitor_thread:
             self.monitor_thread.join(timeout=5)
         printf("자동 모니터링 중지", ptype=LT.info)
     
     def _monitor_loop(self):
-        """모니터링 루프 (백그라운드 스레드)"""
         while self.monitoring:
             for camera_id in list(self.receivers.keys()):
                 try:
@@ -294,11 +237,9 @@ class CentralGyroController:
             time.sleep(self.check_interval)
     
     def get_all_status(self) -> Dict[str, CameraStatus]:
-        """모든 카메라 상태 반환"""
         return self.camera_status.copy()
     
     def print_status(self):
-        """모든 카메라 상태 출력"""
         print("\n" + "="*80)
         print("카메라 자이로 시스템 상태")
         print("="*80)
@@ -333,7 +274,6 @@ class CentralGyroController:
         print("="*80)
     
     def cleanup(self):
-        """모든 리소스 정리"""
         printf("시스템 종료 중...", ptype=LT.info)
         
         self.stop_monitoring()
