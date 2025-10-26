@@ -1,6 +1,7 @@
-from utils.printing import LT, printf
+from core.managers.cleanup_manager import CleanupManager
 from core.managers.initialize_manager import InitializeManager
 from utils.config import ConfigManager
+from utils.printing import LT, printf
 import cv2
 import signal
 import time
@@ -13,6 +14,7 @@ class ApplicationController:
         self.config_manager = ConfigManager()
         self.config = self.config_manager.get_config()
         self.initialize_manager = InitializeManager()
+        self.cleanup_manager = CleanupManager()
 
         self.KEY_QUIT        = ord('q')
         self.KEY_STATS       = ord('s')
@@ -33,6 +35,8 @@ class ApplicationController:
         self.performance_manager = self.initialize_manager.performance_manager
         self.image_manager = self.initialize_manager.image_manager
         self.data_manager = self.initialize_manager.data_manager
+        
+        self.sensor_controller = self.initialize_manager.sensor_controller
 
         # 애플리케이션 상태
         self.is_running = False
@@ -64,6 +68,7 @@ class ApplicationController:
             and self.initialize_manager.initialize_ui_manager()
             and self.initialize_manager.initialize_image_manager()
             and self.initialize_manager.initialize_data_manager()
+            and self.initialize_manager.initialize_sensor_controller()
             )
         
         except Exception as e:
@@ -133,12 +138,20 @@ class ApplicationController:
         self._update_user_interfaces(tracking_result)
         self._save_frame_and_record(cam_ids[0], frame) if cam_ids else None
         self._delete_old_images()
-        
 
         return tracking_result
-    
+
+    def _initialize_sensor_controller(self):
+        self.sensor_controller = self.sensor_controller
+        for cam_config in self.sensors_config:
+            self.sensor_controller.add_sensor(
+                cam_config['id'],
+                cam_config['ip'],
+                cam_config['port']
+            )   
+
     def _save_tracking_data(self, tracking_result):
-        if not (self.initialize_manager.data_manager and tracking_result):
+        if not (self.data_manager and tracking_result):
             return
         tracking_result_return = {
             'timestamp': tracking_result.get('position_entry', {}).get('timestamp', datetime.datetime.now()),
@@ -361,75 +374,4 @@ class ApplicationController:
             printf(f"Force plot update failed: {e}", ptype=LT.warning)
 
     def cleanup(self):
-        """애플리케이션 정리"""
-        printf("=== Starting Application Cleanup ===", ptype=LT.info)
-
-        try:
-            self._cleanup_cameras()
-            self._cleanup_ui()
-            self._cleanup_opencv_windows()
-            self._save_profiling_data()
-            printf("=== Application cleanup completed successfully ===", ptype=LT.success)
-
-        except Exception as e:
-            printf(f"Cleanup error: {e}", ptype=LT.error)
-        finally:
-            self._print_final_statistics()  # 항상 실행되도록
-
-    def _print_final_statistics(self):
-        self._print_runtime_summary()
-        self._print_detection_summary()
-        self._print_tracking_summary()
-        self._print_performance_summary()
-
-    def _print_performance_summary(self):
-        if self.performance_manager:
-            performance_report = self.performance_manager.get_performance_report()
-            avg_fps = performance_report.get('avg_fps', 0)
-            uptime = performance_report.get('uptime', 0)
-            printf(f"System Performance: {avg_fps:.1f} FPS average, {uptime:.1f}s uptime", ptype=LT.info)
-
-    def _print_tracking_summary(self):
-        if self.tracking_manager:
-            tracking_stats = self.tracking_manager.get_tracking_statistics()
-            track_success = tracking_stats.get('success_rate', 0)
-            printf(f"Tracking Performance: {track_success:.1f}% triangulation success", ptype=LT.info)
-
-    def _print_detection_summary(self):
-        if self.detection_manager:
-            detection_stats = self.detection_manager.get_detection_statistics()
-            success_rate = detection_stats.get('success_rate', 0)
-            printf(f"Detection Performance: {success_rate:.1f}% success rate", ptype=LT.info)
-
-    def _print_runtime_summary(self):
-        if self.performance_manager:
-            total_uptime = self.performance_manager.get_performance_report().get('uptime', 0)
-            printf(f"Total Runtime: {self.frame_count} frames processed, {total_uptime:.1f} seconds elapsed", ptype=LT.info)
-        else:
-            printf(f"Total Runtime: {self.frame_count} frames processed", ptype=LT.info)
-
-    def _save_profiling_data(self):
-        if self.performance_manager:
-            printf("Saving profiling results...", ptype=LT.info)
-            self.performance_manager.stop_profiling()
-            self.performance_manager.save_profiling_results()
-            self.performance_manager.save_performance_report()
-
-        if self.detection_manager:
-            self.detection_manager.save_detection_profile("detection_profile.prof")
-
-    def _cleanup_opencv_windows(self):
-        try:
-            cv2.destroyAllWindows()
-        except Exception as e:
-            printf(f"Error while destroying OpenCV windows: {e}", ptype=LT.warning)
-
-    def _cleanup_ui(self):
-        if self.ui_manager:
-            printf("Cleaning up UI components...", ptype=LT.info)
-            self.ui_manager.cleanup()
-
-    def _cleanup_cameras(self):
-        if self.camera_manager:
-            printf("Stopping camera threads...", ptype=LT.info)
-            self.camera_manager.stop_cameras()
+        self.cleanup_manager.cleanup(self)
