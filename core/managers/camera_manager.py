@@ -11,6 +11,7 @@ from threading import Thread, Lock
 from collections import deque
 from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
+import sqlite3
 
 from core.models.camera_stream import CamStream
 from utils.printing import printf, LT
@@ -65,6 +66,7 @@ class CameraManager:
         self.target_fps = self.camera_config['fps']
         self.buffer_size = self.camera_config['buffer_size']
         self.search_range = self.camera_config['search_range']
+        self.camera_wait_interval = self.camera_config.get('wait_interval', 0.2)  # 카메라 준비 대기 간격(초), 기본값 0.2
         
         # 카메라 스트림들
         self.streams: Dict[int, CamStream] = {}
@@ -129,14 +131,53 @@ class CameraManager:
             reverse=True
         )
         
-        selected = {}
+        selected_cameras: Dict[int, int] = {}
+        device_key = 0
         for idx, (device_idx, info) in enumerate(sorted_cameras[:camera_count]):
-            selected[idx] = device_idx
-            printf(f"Auto-selected Camera {idx} -> Device {device_idx} "
-                  f"({info['width']}x{info['height']})", ptype=LT.info)
-        
-        return selected
-    
+            if device_key >= camera_count:
+                break
+
+            try:
+                cap = cv2.VideoCapture(device_idx)
+                if not cap.isOpened():
+                    continue
+
+                print(f"\n=== Checking Camera {device_idx} ===")
+                print("Press 't' if correct, 'f' if incorrect, 'q' to quit")
+
+                frame_shown = False
+                while True:
+                    ret, frame = cap.read()
+                    if ret:
+                        frame_shown = True
+                        cv2.imshow(f"Camera {device_idx}", frame)
+                        key = cv2.waitKey(1) & 0xFF
+
+                        if key == ord('t'):
+                            selected_cameras[device_key] = device_idx
+                            printf(f"Selected Camera {idx} -> Device {device_idx} "
+                                   f"({info['width']}x{info['height']})", ptype=LT.info)
+                            device_key += 1
+                            break
+                        elif key == ord('f'):
+                            printf("Skipping camera.", ptype=LT.info)
+                            break
+                        elif key == ord('q'):
+                            break
+                    else:
+                        if not frame_shown:
+                            printf("Failed to grab frame from camera", ptype=LT.error)
+                            break
+                        time.sleep(0.01)
+
+                cap.release()
+                cv2.destroyAllWindows()
+
+            except Exception as e:
+                printf(f"An Error occured while processing camera {device_idx}: ", e, ptype=LT.error)
+
+        return selected_cameras
+
     def initialize_cameras(self, camera_count: int = None) -> bool:
         """카메라 초기화 및 선택"""
         if camera_count is None:
@@ -155,6 +196,7 @@ class CameraManager:
         # 카메라 선택
         self.selected_cameras = self.select_cameras(available_cameras, camera_count)
         
+
         if not self.selected_cameras:
             printf("No cameras selected", ptype=LT.error)
             return False
@@ -168,9 +210,10 @@ class CameraManager:
             (cv2.CAP_PROP_FRAME_WIDTH, self.frame_width),
             (cv2.CAP_PROP_FRAME_HEIGHT, self.frame_height),
             (cv2.CAP_PROP_FPS, self.target_fps),
-            (cv2.CAP_PROP_BUFFERSIZE, 1),
+            # CAP_PROP_BUFFERSIZE is not supported by all backends (may be ignored or cause warnings)
+            (cv2.CAP_PROP_AUTOFOCUS, 0),  # 자동 포커스 비활성화 (일부 카메라에서 지원되지 않을 수 있음)
             (cv2.CAP_PROP_AUTOFOCUS, 0),  # 자동 포커스 비활성화
-            (cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # 자동 노출 제한
+            (cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # 자동 노출 제한 (0.25는 OpenCV 백엔드마다 의미가 다를 수 있음, 예: 0.25=수동, 0.75=자동)
         ]
         
         success_count = 0
@@ -286,7 +329,7 @@ class CameraManager:
         start_time = time.perf_counter()
         while (len(self.streams) < len(self.selected_cameras) and 
                time.perf_counter() - start_time < 20.0):
-            time.sleep(0.2)
+            time.sleep(self.camera_wait_interval)
         
         active_cameras = sum(1 for s in self.streams.values() if s.cap is not None)
         printf(f"Active cameras: {active_cameras}", ptype=LT.info)

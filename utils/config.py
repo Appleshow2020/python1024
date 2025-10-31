@@ -84,17 +84,6 @@ class ConfigManager:
         """전체 설정 반환"""
         return self._config
     
-    def get(self, key: str, default=None):
-        """특정 키의 설정값 반환"""
-        keys = key.split('.')
-        value = self._config
-        for k in keys:
-            if isinstance(value, dict) and k in value:
-                value = value[k]
-            else:
-                return default
-        return value
-    
     def save_config(self):
         """현재 설정을 파일에 저장"""
         if not self._config_path:

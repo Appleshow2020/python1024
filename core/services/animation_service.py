@@ -1,13 +1,13 @@
 # core/services/animation_service.py
 import time
-import queue
 import numpy as np
 import matplotlib.pyplot as plt
 from threading import Event
 from collections import deque
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from utils.printing import printf, LT
+
 
 class AnimationService:
     """고급 애니메이션 서비스 - GPU 가속 및 최적화 포함"""
@@ -19,14 +19,15 @@ class AnimationService:
         
         # 애니메이션 설정
         self.last_update = 0
-        self.data_queue = queue.Queue(maxsize=self.processing_config.get('queue_size', 10))
+        self.data_queue = deque(maxlen=1)   # 최신 데이터만 유지
         self.stop_event = Event()
         self.ui_update_event = Event()
         
         # matplotlib 컴포넌트들
         self.fig = None
         self.ax = None
-        self.plot_data = {'x': [], 'y': [], 'timestamps': []}
+        self.line = None
+        self.points = None
         
         # 성능 모니터링
         self.render_times = deque(maxlen=100)
@@ -40,16 +41,19 @@ class AnimationService:
             plt.ion()
             figsize = self.display_config.get('plot_size', [8, 6])
             self.fig, self.ax = plt.subplots(figsize=figsize)
-            
-            # 블리팅 활성화로 성능 향상
+
+            # 초기 plot 객체 생성 (재사용 가능)
+            (self.line,) = self.ax.plot([], [], 'r-', alpha=0.5, linewidth=1, animated=True)
+            self.points = self.ax.scatter([], [], c='red', s=30, alpha=0.7, animated=True)
+
             self.fig.canvas.draw()
             self.background = self.fig.canvas.copy_from_bbox(self.ax.bbox)
-            
+
             self.ax.set_xlim(-15, 15)
             self.ax.set_ylim(-10, 10)
             self.ax.set_title("Advanced Ball Tracking")
             self.ax.grid(True, alpha=0.3)
-            
+
             printf("Advanced matplotlib initialized", ptype=LT.info)
         except Exception as e:
             printf(f"Matplotlib init failed: {e}", ptype=LT.error)
@@ -63,14 +67,9 @@ class AnimationService:
             return False
             
         try:
-            # 큐 관리 - 최신 데이터만 유지
-            while not self.data_queue.empty():
-                try:
-                    self.data_queue.get_nowait()
-                except queue.Empty:
-                    break
-                    
-            self.data_queue.put({
+            # 최신 데이터만 유지
+            self.data_queue.clear()
+            self.data_queue.append({
                 'pl': pl.copy(), 
                 'timestamp': current_time,
                 'data_points': len(pl)
@@ -90,8 +89,11 @@ class AnimationService:
         start_time = time.perf_counter()
         
         try:
-            while not self.data_queue.empty():
-                data = self.data_queue.get_nowait()
+            # 창 크기 변경 등에 대비하여 배경 최신화
+            self.background = self.fig.canvas.copy_from_bbox(self.ax.bbox)
+            
+            while self.data_queue:
+                data = self.data_queue.popleft()
                 self._update_plot_advanced(data)
             self.ui_update_event.clear()
             
@@ -99,8 +101,6 @@ class AnimationService:
             render_time = time.perf_counter() - start_time
             self.render_times.append(render_time)
             
-        except queue.Empty:
-            pass
         except Exception as e:
             printf(f"Process updates failed: {e}", ptype=LT.warning)
     
@@ -127,17 +127,12 @@ class AnimationService:
             # 배경 복원 (블리팅)
             self.fig.canvas.restore_region(self.background)
             
-            # 새로운 데이터 그리기
-            if len(positions) > 0:
-                # 점 그리기
-                points = self.ax.scatter(x_coords, y_coords, c='red', s=30, alpha=0.7, animated=True)
-                
-                # 궤적 그리기
-                if len(positions) > 1:
-                    line, = self.ax.plot(x_coords, y_coords, 'r-', alpha=0.5, linewidth=1, animated=True)
-                    self.ax.draw_artist(line)
-                
-                self.ax.draw_artist(points)
+            # 기존 객체 업데이트
+            self.line.set_data(x_coords, y_coords)
+            self.points.set_offsets(np.c_[x_coords, y_coords])
+            
+            self.ax.draw_artist(self.line)
+            self.ax.draw_artist(self.points)
             
             # 블리팅으로 업데이트
             self.fig.canvas.blit(self.ax.bbox)
@@ -165,8 +160,8 @@ class AnimationService:
             
         times = list(self.render_times)
         return {
-            'avg_render_time': np.mean(times),
-            'max_render_time': np.max(times),
+            'avg_render_time': float(np.mean(times)),
+            'max_render_time': float(np.max(times)),
             'render_fps': 1.0 / np.mean(times) if np.mean(times) > 0 else 0
         }
     

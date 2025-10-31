@@ -1,0 +1,175 @@
+calibration:
+  checkerboard_size:
+  - 9
+  - 6
+  intrinsic_fx: 800
+  intrinsic_fy: 800
+  method: manual
+  square_size: 25.0
+camera:
+  auto_exposure: 0.25
+  buffer_size: 3
+  detection_interval: 3
+  enable_autofocus: false
+  fps: 30
+  height: 360
+  search_range: 20
+  width: 640
+cameras:
+  '1':
+    position:
+    - -0.47
+    - -0.52
+    - 0.19
+    rotation:
+    - -30
+    - 45
+    - -10
+  '2':
+    position:
+    - 0.05
+    - 0.05
+    - 0.62
+    rotation:
+    - -90
+    - 0
+    - 100
+  '3':
+    position:
+    - 0.61
+    - 0.39
+    - 0.19
+    rotation:
+    - -20
+    - -120
+    - 0
+detection:
+  confidence_threshold: 0.5
+  enable_gpu: false
+  hsv_lower:
+  - 0
+  - 50
+  - 50
+  hsv_upper:
+  - 15
+  - 255
+  - 255
+  max_contour_area: 5000
+  min_contour_area: 30
+  model_path: ball_detection.onnx
+  morphology_kernel_size: 3
+  nms_threshold: 0.4
+  profiling_enabled: false
+display:
+  animation_interval_ms: 100
+  circle_radius: 5
+  enable_blitting: true
+  line_thickness: 2
+  max_plot_points: 10
+  plot_size:
+  - 8
+  - 6
+  show_debug_info: true
+field:
+  grid_points:
+    x:
+    - -11
+    - -4
+    - 4
+    - 11
+    - -8
+    - -4
+    - 4
+    - 8
+    - -8
+    - -4
+    - 4
+    - 8
+    - -11
+    - -4
+    - 4
+    - 11
+    y:
+    - 7
+    - 7
+    - 7
+    - 7
+    - 4
+    - 4
+    - 4
+    - 4
+    - -4
+    - -4
+    - -4
+    - -4
+    - -7
+    - -7
+    - -7
+    - -7
+  zones:
+    left_in:
+      p1_idx: 4
+      p2_idx: 0
+    left_out:
+      p1_idx: 12
+      p2_idx: 15
+    right_in:
+      p1_idx: 7
+      p2_idx: 3
+    right_out:
+      p1_idx: 8
+      p2_idx: 11
+logging:
+  backup_count: 5
+  console_level: INFO
+  file: logs/ball_tracker.log
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  level: INFO
+  max_file_size: 10MB
+performance:
+  cpu_threshold: 80.0
+  enable_monitoring: true
+  fps_threshold: 15.0
+  frame_time_history_size: 1000
+  memory_threshold_mb: 1000.0
+  stats_interval: 3.0
+  system_stats_history_size: 100
+processing:
+  db_dir: C:\Users\zzuns\Desktop\Python1024\python1024\db\data.db
+  frame_skip_threshold: 2.0
+  get_latest_image_paths_threshold: 1
+  image_db_dir: C:\Users\zzuns\Desktop\Python1024\python1024\db\images.db
+  image_dir: C:\Users\zzuns\Desktop\Python1024\python1024\images
+  image_retention_minutes: 5
+  max_processing_time_ms: 50.0
+  position_history_size: 100
+  queue_size: 10
+  update_intervals:
+    animation: 0.5
+    stats: 5.0
+    ui: 1.0
+profiling:
+  enabled: false
+  output_dir: profiles
+  profile_detection: false
+  profile_tracking: false
+  profile_ui: false
+  save_interval: 100
+tracking:
+  max_triangulation_error: 10.0
+  min_cameras_for_triangulation: 2
+  outlier_threshold: 5.0
+  position_smoothing: 0.5
+  velocity_smoothing: 0.8
+ui:
+  enable_animation: true
+  enable_performance_dashboard: false
+  enable_referee_ui: true
+  window_positions:
+    animation:
+    - 800
+    - 100
+    camera_windows: auto
+    referee_ui:
+    - 100
+    - 100

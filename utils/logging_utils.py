@@ -1,13 +1,9 @@
 # utils/logging_utils.py
-"""
-로깅 관리 유틸리티
-기존 setup_logging 함수를 클래스 기반으로 리팩터링
-"""
 import logging
 import logging.handlers
 from pathlib import Path
 from typing import Dict, Any
-from classes.printing import printf, LT
+from utils.printing import printf, LT
 
 class LoggingManager:
     def __init__(self, config: Dict[str, Any]):
