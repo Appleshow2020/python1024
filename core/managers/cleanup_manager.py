@@ -1,9 +1,8 @@
-from main.ApplicationController import ApplicationController
 from utils.printing import LT, printf
 import cv2
 
 class CleanupManager:
-    def __init__(self, Self: ApplicationController):
+    def __init__(self, Self):
         self.app = Self
     
     def cleanup(self):
