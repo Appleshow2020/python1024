@@ -14,10 +14,10 @@ class ApplicationController:
         # 설정 관리
         self.config_manager = ConfigManager()
         self.config = self.config_manager.get_config()
-        self.initialize_manager = InitializeManager(self)
+        self.initialize_manager = InitializeManager()
         self.cleanup_manager = CleanupManager(self)
         self.statistics_manager = StatisticsManager(self)
-
+    
         self.KEY_QUIT        = ord('q')
         self.KEY_STATS       = ord('s')
         self.KEY_RESET       = ord('r')
@@ -29,24 +29,46 @@ class ApplicationController:
         self.UI_UPDATE_FRAME_INTERVAL        = self.config.get('ui', {}).get('update_interval', 15)
         self.FRAME_DROP_THRESHOLD_MULTIPLIER = self.config.get('performance', {}).get('frame_drop_threshold_multiplier', 2.0)
         self.MIN_CAMERAS_FOR_TRACKING        = self.config.get('tracking', {}).get('min_cameras_for_tracking', 2)
-
-        self.camera_manager = self.initialize_manager.camera_manager
-        self.detection_manager = self.initialize_manager.detection_manager  
-        self.tracking_manager = self.initialize_manager.tracking_manager
-        self.ui_manager = self.initialize_manager.ui_manager
-        self.performance_manager = self.initialize_manager.performance_manager
-        self.image_manager = self.initialize_manager.image_manager
-        self.data_manager = self.initialize_manager.data_manager
-        
-        self.sensor_controller = self.initialize_manager.sensor_controller
-
+    
         # 애플리케이션 상태
         self.is_running = False
         self.frame_count = 0
-
+    
         self._setup_signal_handlers()
         
         printf("Application Controller initialized", ptype=LT.info)
+
+    @property
+    def camera_manager(self):
+        return self.initialize_manager.camera_manager
+
+    @property
+    def detection_manager(self):
+        return self.initialize_manager.detection_manager
+    
+    @property
+    def tracking_manager(self):
+        return self.initialize_manager.tracking_manager
+    
+    @property
+    def ui_manager(self):
+        return self.initialize_manager.ui_manager
+    
+    @property
+    def performance_manager(self):
+        return self.initialize_manager.performance_manager
+    
+    @property
+    def image_manager(self):
+        return self.initialize_manager.image_manager
+    
+    @property
+    def data_manager(self):
+        return self.initialize_manager.data_manager
+    
+    @property
+    def sensor_controller(self):
+        return self.initialize_manager.sensor_controller
 
     def _setup_signal_handlers(self):
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -343,4 +365,4 @@ class ApplicationController:
             printf(f"Force plot update failed: {e}", ptype=LT.warning)
 
     def cleanup(self):
-        self.cleanup_manager.cleanup(self)
+        self.cleanup_manager.cleanup()

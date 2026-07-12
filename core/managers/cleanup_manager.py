@@ -49,9 +49,9 @@ class CleanupManager:
     def _print_runtime_summary(self):
         if self.app.performance_manager:
             total_uptime = self.app.performance_manager.get_performance_report().get('uptime', 0)
-            printf(f"Total Runtime: {self.frame_count} frames processed, {total_uptime:.1f} seconds elapsed", ptype=LT.info)
+            printf(f"Total Runtime: {self.app.frame_count} frames processed, {total_uptime:.1f} seconds elapsed", ptype=LT.info)
         else:
-            printf(f"Total Runtime: {self.frame_count} frames processed", ptype=LT.info)
+            printf(f"Total Runtime: {self.app.frame_count} frames processed", ptype=LT.info)
 
     def _save_profiling_data(self):
         if self.app.performance_manager:
