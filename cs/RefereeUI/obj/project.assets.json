@@ -1,11 +1,78 @@
 {
   "version": 3,
   "targets": {
-    "net9.0-windows7.0": {}
+    "net9.0-windows7.0": {
+      "Camera/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "compile": {
+          "bin/placeholder/Camera.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Camera.dll": {}
+        }
+      },
+      "Core/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "compile": {
+          "bin/placeholder/Core.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Core.dll": {}
+        }
+      },
+      "Database/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "compile": {
+          "bin/placeholder/Database.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Database.dll": {}
+        }
+      },
+      "Tracking/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "compile": {
+          "bin/placeholder/Tracking.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Tracking.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "Camera/1.0.0": {
+      "type": "project",
+      "path": "../Camera/Camera.csproj",
+      "msbuildProject": "../Camera/Camera.csproj"
+    },
+    "Core/1.0.0": {
+      "type": "project",
+      "path": "../Core/Core.csproj",
+      "msbuildProject": "../Core/Core.csproj"
+    },
+    "Database/1.0.0": {
+      "type": "project",
+      "path": "../Database/Database.csproj",
+      "msbuildProject": "../Database/Database.csproj"
+    },
+    "Tracking/1.0.0": {
+      "type": "project",
+      "path": "../Tracking/Tracking.csproj",
+      "msbuildProject": "../Tracking/Tracking.csproj"
+    }
+  },
   "projectFileDependencyGroups": {
-    "net9.0-windows7.0": []
+    "net9.0-windows7.0": [
+      "Camera >= 1.0.0",
+      "Core >= 1.0.0",
+      "Database >= 1.0.0",
+      "Tracking >= 1.0.0"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\zzuns\\.nuget\\packages\\": {},
@@ -38,7 +105,20 @@
       "frameworks": {
         "net9.0-windows7.0": {
           "targetAlias": "net9.0-windows",
-          "projectReferences": {}
+          "projectReferences": {
+            "C:\\Users\\zzuns\\Python1024\\새 폴더 (2)\\python1024\\cs\\Camera\\Camera.csproj": {
+              "projectPath": "C:\\Users\\zzuns\\Python1024\\새 폴더 (2)\\python1024\\cs\\Camera\\Camera.csproj"
+            },
+            "C:\\Users\\zzuns\\Python1024\\새 폴더 (2)\\python1024\\cs\\Core\\Core.csproj": {
+              "projectPath": "C:\\Users\\zzuns\\Python1024\\새 폴더 (2)\\python1024\\cs\\Core\\Core.csproj"
+            },
+            "C:\\Users\\zzuns\\Python1024\\새 폴더 (2)\\python1024\\cs\\Database\\Database.csproj": {
+              "projectPath": "C:\\Users\\zzuns\\Python1024\\새 폴더 (2)\\python1024\\cs\\Database\\Database.csproj"
+            },
+            "C:\\Users\\zzuns\\Python1024\\새 폴더 (2)\\python1024\\cs\\Tracking\\Tracking.csproj": {
+              "projectPath": "C:\\Users\\zzuns\\Python1024\\새 폴더 (2)\\python1024\\cs\\Tracking\\Tracking.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

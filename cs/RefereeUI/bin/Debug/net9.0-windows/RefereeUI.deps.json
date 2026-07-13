@@ -7,14 +7,72 @@
   "targets": {
     ".NETCoreApp,Version=v9.0": {
       "RefereeUI/1.0.0": {
+        "dependencies": {
+          "Camera": "1.0.0",
+          "Core": "1.0.0",
+          "Database": "1.0.0",
+          "Tracking": "1.0.0"
+        },
         "runtime": {
           "RefereeUI.dll": {}
+        }
+      },
+      "Camera/1.0.0": {
+        "runtime": {
+          "Camera.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Core/1.0.0": {
+        "runtime": {
+          "Core.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Database/1.0.0": {
+        "runtime": {
+          "Database.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Tracking/1.0.0": {
+        "runtime": {
+          "Tracking.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       }
     }
   },
   "libraries": {
     "RefereeUI/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Camera/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Database/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Tracking/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

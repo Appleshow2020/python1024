@@ -1,0 +1,12 @@
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\bin\Debug\net9.0\Database.deps.json
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\bin\Debug\net9.0\Database.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\bin\Debug\net9.0\Database.pdb
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\Database.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\Database.AssemblyInfoInputs.cache
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\Database.AssemblyInfo.cs
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\Database.csproj.CoreCompileInputs.cache
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\Database.sourcelink.json
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\Database.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\refint\Database.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\Database.pdb
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Database\obj\Debug\net9.0\ref\Database.dll

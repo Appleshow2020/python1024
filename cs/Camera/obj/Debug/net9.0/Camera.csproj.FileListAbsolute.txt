@@ -1,0 +1,12 @@
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\bin\Debug\net9.0\Camera.deps.json
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\bin\Debug\net9.0\Camera.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\bin\Debug\net9.0\Camera.pdb
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\Camera.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\Camera.AssemblyInfoInputs.cache
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\Camera.AssemblyInfo.cs
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\Camera.csproj.CoreCompileInputs.cache
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\Camera.sourcelink.json
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\Camera.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\refint\Camera.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\Camera.pdb
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Camera\obj\Debug\net9.0\ref\Camera.dll

@@ -1,0 +1,12 @@
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\bin\Debug\net9.0\Tracking.deps.json
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\bin\Debug\net9.0\Tracking.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\bin\Debug\net9.0\Tracking.pdb
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\Tracking.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\Tracking.AssemblyInfoInputs.cache
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\Tracking.AssemblyInfo.cs
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\Tracking.csproj.CoreCompileInputs.cache
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\Tracking.sourcelink.json
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\Tracking.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\refint\Tracking.dll
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\Tracking.pdb
+C:\Users\zzuns\Python1024\새 폴더 (2)\python1024\cs\Tracking\obj\Debug\net9.0\ref\Tracking.dll
