@@ -15,9 +15,9 @@
     },
     "position_history_size": 100,
     "queue_size": 10,
-    "image_dir": "C:\\Users\\zzuns\\Python1024\\\uc0c8 \ud3f4\ub354 (2)\\python1024\\images",
-    "image_db_dir": "C:\\Users\\zzuns\\Python1024\\\uc0c8 \ud3f4\ub354 (2)\\python1024\\db\\images.db",
-    "db_dir": "C:\\Users\\zzuns\\Python1024\\\uc0c8 \ud3f4\ub354 (2)\\python1024\\db\\data.db"
+    "image_dir": "C:\\Users\\zzuns\\Python1024\\\uc0c8 \ud3f4\ub354 (2)\\python1024\\py\\images",
+    "image_db_dir": "C:\\Users\\zzuns\\Python1024\\\uc0c8 \ud3f4\ub354 (2)\\python1024\\py\\db\\images.db",
+    "db_dir": "C:\\Users\\zzuns\\Python1024\\\uc0c8 \ud3f4\ub354 (2)\\python1024\\py\\db\\data.db"
   },
   "detection": {
     "hsv_lower": [
