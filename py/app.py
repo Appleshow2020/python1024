@@ -1,29 +1,52 @@
-# main/app.py
 import sys
+
 from main.ApplicationController import ApplicationController
 from utils.printing import printf, LT
 
-def main():
-    """메인 함수 - 애플리케이션 진입점"""
-    printf("Starting Ball Tracking Application...", ptype=LT.info)
-    
+def _main_impl() -> int:
     app = ApplicationController()
     exit_code = 0
-    
+
+    printf(
+        "Starting Ball Tracking Application...",
+        ptype=LT.info
+    )
+
     try:
-        success = app.run()
-        exit_code = 0 if success else 1
-        
-    except Exception as e:
-        printf(f"Unexpected error in main: {e}", ptype=LT.error)
+        result = app.run()
+
+        if not result:
+            exit_code = 1
+
+    except Exception as exc:
+        printf(
+            "Unexpected error in main:",
+            exc,
+            ptype=LT.error
+        )
         exit_code = 1
-        
+
     finally:
-        app.cleanup()
-        printf("Application terminated", ptype=LT.info)
-    
+        try:
+            app.cleanup()
+        except Exception as exc:
+            printf(
+                "Cleanup failed:",
+                exc,
+                ptype=LT.error
+            )
+            exit_code = 1
+
+        printf(
+            "Application terminated",
+            ptype=LT.info
+        )
+
     return exit_code
 
+def main() -> int:
+    return _main_impl()
+
+
 if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code)
+    sys.exit(main())

@@ -65,6 +65,9 @@ def printf(
     useReset: bool = True,
     simulation: bool = False
 ) -> None:
+    """
+    Prints the values to a stream, or to sys.stdout by default.
+    """
 
     if not isinstance(ptype, LT):
         raise TypeError('ptype must be an instance of LT')
