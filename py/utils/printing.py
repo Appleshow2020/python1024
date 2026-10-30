@@ -1,45 +1,95 @@
+import sys
 import time
 from enum import Enum
+from typing import TextIO
+
 
 class LT(Enum):
-    error = 'error'
-    success = 'success'
-    warning = 'warning'
-    info = 'info'
-    debug = 'debug'
+    error = ('error', '\033[31m')
+    success = ('success', '\033[32m')
+    warning = ('warning', '\033[33m')
+    info = ('info', '\033[34m')
+    debug = ('debug', '\033[90m')
 
-class Colors:
-    error = '\033[31m'
-    success = '\033[32m'
-    warning = '\033[33m'
-    info = '\033[34m'
-    debug = '\033[90m'
-    reset = '\033[0m'
+    def __init__(self, label: str, color: str):
+        self.label = label
+        self.color = color
 
-def printf(*text:object,**kwargs):
-        #    ptype:LT|None = LT.debug,
-        #    end:str|None = '\n',
-        #    sep:str|None=' ',
-        #    useReset:bool|None = True):
 
-    ptype:LT|None = kwargs.get('ptype', LT.debug)
-    end:str|None = kwargs.get('end', '\n')  
-    sep:str|None = kwargs.get('sep', ' ')
-    useReset:bool|None = kwargs.get('useReset', True)
-    simulation:bool|None = kwargs.get('simulation', False)
+class _Printf:
+    @staticmethod
+    def _format(
+        values: tuple,
+        ptype: LT,
+        sep: str,
+        simulation: bool,
+        useReset: bool
+    ) -> str:
 
-    def now2() -> str:
-        return time.strftime("%X")
-    
-    color = getattr(Colors, ptype.value, Colors.reset)
-    # toPrint = f"{color}[{now2()}] [{ptype.name}] " + sep.join(map(str, text))///
-    toPrint = ""
-    toPrint += f"{color}[{now2()}]"
-    toPrint += f" [SIMULATION] " if simulation else ""
-    toPrint += f" [{ptype.name}] "
-    toPrint += sep.join(map(str, text))
-    
-    if useReset:
-        print(toPrint, Colors.reset, end=end)
-    else:
-        print(toPrint, end=end)
+        timestamp = time.strftime('%X')
+
+        prefix = (
+            f'{ptype.color}[{timestamp}]'
+            f'{" [SIMULATION]" if simulation else ""}'
+            f' [{ptype.name.upper()}] '
+        )
+
+        message = sep.join(map(str, values))
+
+        if useReset:
+            message += '\033[0m'
+
+        return prefix + message
+
+    @staticmethod
+    def _write(
+        message: str,
+        end: str,
+        file: TextIO,
+        flush: bool
+    ) -> None:
+
+        file.write(message + end)
+
+        if flush:
+            file.flush()
+
+
+def printf(
+    *values: object,
+    ptype: LT = LT.debug,
+    sep: str | None = ' ',
+    end: str | None = '\n',
+    file: TextIO | None = None,
+    flush: bool = False,
+    useReset: bool = True,
+    simulation: bool = False
+) -> None:
+
+    if not isinstance(ptype, LT):
+        raise TypeError('ptype must be an instance of LT')
+
+    if sep is not None and not isinstance(sep, str):
+        raise TypeError('sep must be None or a string')
+
+    if end is not None and not isinstance(end, str):
+        raise TypeError('end must be None or a string')
+
+    if file is None:
+        file = sys.stdout
+
+    if sep is None:
+        sep = ' '
+
+    if end is None:
+        end = ''
+
+    message = _Printf._format(
+        values,
+        ptype,
+        sep,
+        simulation,
+        useReset
+    )
+
+    _Printf._write(message, end, file, flush)

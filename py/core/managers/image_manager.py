@@ -118,4 +118,5 @@ class ImageManager:
 
         conn.commit()
         conn.close()
-        printf(f"Deleted {deleted_count} old images older than {time_minutes} minutes", ptype=LT.info)
+        if time.localtime().tm_sec == 0:
+            printf(f"Deleted {deleted_count} old images older than {time_minutes} minutes", ptype=LT.info)
