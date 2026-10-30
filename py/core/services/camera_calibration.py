@@ -91,4 +91,4 @@ class CameraCalibration:
         printf(ptype=LT.info,end=" ",useReset=False)
         for cam_id, data in self.camera_params.items():
             print(f"{cam_id} Projection Matrix:\n{data['P']}")
-        print(Colors.reset)
+        print('\033[0m')
